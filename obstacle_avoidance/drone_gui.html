@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drone Mission Control — Cube+ / RPi / ROS2</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #07090c;
+  --bg2:      #0b0f14;
+  --bg3:      #0f141b;
+  --panel:    #111921;
+  --border:   #1a2535;
+  --border2:  #243040;
+  --accent:   #00b4d8;
+  --accentd:  #0077a8;
+  --green:    #00e676;
+  --greend:   #00a152;
+  --red:      #ff1744;
+  --orange:   #ff6d00;
+  --yellow:   #ffd600;
+  --purple:   #aa00ff;
+  --dim:      #3a5068;
+  --dim2:     #5a7890;
+  --text:     #cce0f0;
+  --text2:    #7a9bb5;
+  --mono:     'IBM Plex Mono', monospace;
+  --sans:     'IBM Plex Sans', sans-serif;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  font-size:13px;
+}
+
+/* ═══ LAYOUT ═══ */
+.shell{display:grid;grid-template-rows:48px 1fr;height:100vh;}
+.body{display:grid;grid-template-columns:260px 1fr 300px;overflow:hidden;}
+
+/* ═══ TOPBAR ═══ */
+.topbar{
+  background:var(--bg2);
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  padding:0 18px;
+  gap:20px;
+}
+.logo{
+  font-family:var(--mono);
+  font-weight:600;
+  font-size:13px;
+  color:var(--accent);
+  letter-spacing:2px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.logo::before{
+  content:'◈';
+  color:var(--green);
+  font-size:16px;
+}
+.tb-sep{width:1px;height:20px;background:var(--border2);}
+.tb-stat{
+  display:flex;align-items:center;gap:6px;
+  font-family:var(--mono);font-size:10px;color:var(--dim2);
+}
+.tb-led{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--dim);
+  transition:all .3s;
+}
+.tb-led.on{ background:var(--green); box-shadow:0 0 8px var(--greend); animation:pulse 2s infinite; }
+.tb-led.warn{ background:var(--orange); box-shadow:0 0 8px rgba(255,109,0,.5); }
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:16px;}
+.clock{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:1px;}
+
+/* ═══ LEFT PANEL: WORKSPACE ═══ */
+.left{
+  background:var(--bg2);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+}
+.panel-head{
+  padding:12px 14px 10px;
+  font-family:var(--mono);font-size:9px;
+  letter-spacing:2px;color:var(--dim2);
+  border-bottom:1px solid var(--border);
+  text-transform:uppercase;
+}
+
+/* WORKSPACE TREE */
+.tree{overflow-y:auto;flex:1;padding:6px 0 12px;}
+.tree-item{
+  display:flex;align-items:center;gap:0;
+  padding:3.5px 10px;
+  font-family:var(--mono);font-size:11px;
+  color:var(--text2);
+  cursor:pointer;
+  transition:background .12s;
+  position:relative;
+  user-select:none;
+}
+.tree-item:hover{background:rgba(0,180,216,.04);}
+.tree-item.hi{
+  background:rgba(0,180,216,.07);
+  color:var(--accent);
+}
+.tree-item.hi::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;
+  width:2px;background:var(--accent);
+}
+.tree-item.dir{color:var(--accent);opacity:.8;}
+.ti-in{display:inline-block;color:var(--dim);font-size:10px;}
+.ti-ico{margin:0 5px 0 2px;font-size:12px;}
+.ti-name{flex:1;}
+.ti-tag{
+  font-size:8px;padding:1px 5px;border-radius:2px;
+  font-family:var(--mono);letter-spacing:.5px;flex-shrink:0;
+}
+.tg-new{background:rgba(0,230,118,.1);color:var(--green);border:1px solid rgba(0,230,118,.25);}
+.tg-cfg{background:rgba(255,109,0,.1);color:var(--orange);border:1px solid rgba(255,109,0,.25);}
+.tg-sys{background:rgba(0,180,216,.1);color:var(--accent);border:1px solid rgba(0,180,216,.25);}
+.ti-note{font-size:9px;color:var(--dim);margin-left:5px;}
+
+.tree-group{
+  padding:10px 10px 3px;
+  font-family:var(--mono);font-size:8px;
+  letter-spacing:2px;color:var(--dim);
+  text-transform:uppercase;
+  border-top:1px solid var(--border);
+  margin-top:4px;
+}
+
+/* ═══ CENTER ═══ */
+.center{display:flex;flex-direction:column;overflow:hidden;}
+
+/* NODE SECTION */
+.node-section{
+  padding:14px 16px 12px;
+  border-bottom:1px solid var(--border);
+  background:var(--bg2);
+}
+.sec-head{
+  font-family:var(--mono);font-size:9px;
+  letter-spacing:2px;color:var(--dim2);
+  margin-bottom:10px;
+}
+
+.node-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+
+.node-card{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:3px;
+  padding:11px 13px 10px;
+  position:relative;
+  transition:all .2s;
+  overflow:hidden;
+}
+.node-card::after{
+  content:'';
+  position:absolute;top:0;left:0;right:0;height:2px;
+  background:var(--border2);
+  transition:all .3s;
+}
+.node-card.running{border-color:rgba(0,230,118,.2);}
+.node-card.running::after{background:var(--green);box-shadow:0 0 10px var(--greend);}
+.node-card.error{border-color:rgba(255,23,68,.2);}
+.node-card.error::after{background:var(--red);}
+.node-card.busy{border-color:rgba(255,214,0,.15);}
+.node-card.busy::after{background:var(--yellow);animation:pulse .6s infinite;}
+
+.nc-top{display:flex;align-items:flex-start;gap:9px;margin-bottom:7px;}
+.nc-ico{font-size:17px;flex-shrink:0;margin-top:1px;}
+.nc-info{flex:1;min-width:0;}
+.nc-name{
+  font-family:var(--mono);font-size:10.5px;
+  color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.nc-sub{font-size:9.5px;color:var(--dim2);margin-top:2px;font-family:var(--mono);}
+
+/* TOGGLE SWITCH */
+.nc-toggle{
+  width:38px;height:20px;
+  background:var(--bg);
+  border:1px solid var(--border2);
+  border-radius:10px;
+  cursor:pointer;
+  position:relative;
+  transition:all .25s;
+  flex-shrink:0;
+  outline:none;
+  appearance:none;-webkit-appearance:none;
+}
+.nc-toggle::after{
+  content:'';
+  position:absolute;top:3px;left:3px;
+  width:12px;height:12px;border-radius:50%;
+  background:var(--dim);
+  transition:all .25s;
+}
+.nc-toggle.on{
+  background:rgba(0,230,118,.12);
+  border-color:var(--green);
+  box-shadow:0 0 10px rgba(0,230,118,.2);
+}
+.nc-toggle.on::after{left:21px;background:var(--green);box-shadow:0 0 6px rgba(0,230,118,.8);}
+.nc-toggle.busy{
+  background:rgba(255,214,0,.08);
+  border-color:var(--yellow);
+}
+.nc-toggle.busy::after{
+  left:12px;background:var(--yellow);
+  animation:pulse .5s infinite;
+}
+
+.nc-status{
+  display:flex;align-items:center;gap:5px;
+  font-family:var(--mono);font-size:9px;
+}
+.nc-dot{
+  width:5px;height:5px;border-radius:50%;
+  background:var(--dim);flex-shrink:0;
+}
+.nc-dot.on{background:var(--green);box-shadow:0 0 6px var(--greend);animation:pulse 2s infinite;}
+.nc-dot.busy{background:var(--yellow);animation:pulse .5s infinite;}
+.nc-dot.err{background:var(--red);}
+.nc-note{font-size:8.5px;color:var(--dim);margin-left:auto;}
+
+/* ═══ INJECTOR ═══ */
+.inj-section{
+  padding:12px 16px 10px;
+  border-bottom:1px solid var(--border);
+}
+.inj-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;}
+.inj-card{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:3px;
+  padding:9px 11px;
+  transition:all .2s;
+}
+.inj-card.fired{
+  border-color:rgba(255,109,0,.35);
+  background:rgba(255,109,0,.04);
+}
+.inj-head{
+  display:flex;align-items:center;gap:5px;
+  font-family:var(--mono);font-size:9px;
+  color:var(--dim2);margin-bottom:7px;
+}
+.inj-blink{
+  width:5px;height:5px;border-radius:50%;
+  background:var(--orange);opacity:0;
+  transition:opacity .3s;
+}
+.inj-card.fired .inj-blink{opacity:1;animation:pulse 1s infinite;}
+
+.sl-row{display:flex;align-items:center;gap:5px;margin-bottom:4px;}
+.sl-lbl{font-family:var(--mono);font-size:9px;color:var(--dim2);width:32px;flex-shrink:0;}
+.sl-range{
+  flex:1;-webkit-appearance:none;height:2px;
+  background:var(--border2);border-radius:1px;outline:none;
+}
+.sl-range::-webkit-slider-thumb{
+  -webkit-appearance:none;width:9px;height:9px;
+  border-radius:50%;background:var(--orange);
+  cursor:pointer;box-shadow:0 0 5px rgba(255,109,0,.5);
+}
+.sl-val{font-family:var(--mono);font-size:9.5px;color:var(--orange);width:30px;text-align:right;flex-shrink:0;}
+
+.slant-row{
+  display:flex;align-items:center;gap:5px;
+  margin:5px 0 7px;cursor:pointer;
+}
+.slant-row input{display:none;}
+.sl-track{
+  width:26px;height:13px;
+  background:var(--bg);border:1px solid var(--border2);
+  border-radius:7px;position:relative;transition:all .2s;
+}
+.sl-track::after{
+  content:'';position:absolute;
+  top:2px;left:2px;width:7px;height:7px;
+  border-radius:50%;background:var(--dim);transition:all .2s;
+}
+.slant-row input:checked+.sl-track{
+  background:rgba(170,0,255,.15);border-color:var(--purple);
+}
+.slant-row input:checked+.sl-track::after{left:15px;background:var(--purple);}
+.sl-slantlbl{font-family:var(--mono);font-size:9px;color:var(--dim2);}
+
+.inj-btns{display:flex;gap:4px;}
+.inj-btn{
+  flex:1;padding:4px 0;
+  border-radius:2px;cursor:pointer;
+  font-family:var(--mono);font-size:8.5px;
+  letter-spacing:.5px;transition:all .15s;
+}
+.btn-fire{
+  background:rgba(255,109,0,.1);
+  border:1px solid rgba(255,109,0,.35);
+  color:var(--orange);
+}
+.btn-fire:hover{background:rgba(255,109,0,.2);}
+.btn-clr{
+  background:rgba(255,23,68,.07);
+  border:1px solid rgba(255,23,68,.25);
+  color:var(--red);
+}
+.btn-clr:hover{background:rgba(255,23,68,.15);}
+
+/* ═══ TERMINAL ═══ */
+.term-wrap{
+  flex:1;display:flex;flex-direction:column;
+  overflow:hidden;margin:10px 14px 12px;
+}
+.term-bar{
+  display:flex;align-items:center;gap:6px;
+  padding:7px 11px;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-bottom:none;
+  border-radius:3px 3px 0 0;
+}
+.tdot{width:8px;height:8px;border-radius:50%;}
+.term-title{font-family:var(--mono);font-size:9.5px;color:var(--dim2);margin-left:6px;}
+.term-clr{
+  margin-left:auto;background:none;
+  border:1px solid var(--border2);color:var(--dim2);
+  font-family:var(--mono);font-size:8px;
+  padding:2px 7px;border-radius:2px;cursor:pointer;
+  transition:all .15s;
+}
+.term-clr:hover{color:var(--red);border-color:rgba(255,23,68,.4);}
+.term-body{
+  flex:1;overflow-y:auto;
+  background:#04070b;
+  border:1px solid var(--border);border-top:none;
+  border-radius:0 0 3px 3px;
+  padding:9px 12px;
+  font-family:var(--mono);font-size:10.5px;
+  line-height:1.8;
+}
+.tl{display:flex;gap:9px;}
+.ts{color:var(--dim);flex-shrink:0;font-size:9.5px;}
+.tc-info{color:var(--accent);}
+.tc-ok{color:var(--green);}
+.tc-warn{color:var(--orange);}
+.tc-err{color:var(--red);}
+.tc-cmd{color:#c792ea;}
+.tc-dim{color:var(--dim2);}
+
+/* ═══ RIGHT PANEL ═══ */
+.right{
+  background:var(--bg2);
+  border-left:1px solid var(--border);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+}
+.rtabs{
+  display:flex;
+  border-bottom:1px solid var(--border);
+  background:var(--bg3);
+}
+.rtab{
+  flex:1;padding:9px 2px;
+  font-family:var(--mono);font-size:8.5px;
+  letter-spacing:1px;background:none;
+  border:none;color:var(--dim2);
+  cursor:pointer;transition:all .15s;
+  border-bottom:2px solid transparent;
+}
+.rtab:hover{color:var(--text);}
+.rtab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.rbody{flex:1;overflow-y:auto;padding:14px;}
+
+/* GUIDE STEPS */
+.gstep{display:flex;gap:10px;margin-bottom:14px;}
+.gnum{
+  width:20px;height:20px;border-radius:50%;
+  border:1px solid var(--accent);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:8.5px;color:var(--accent);
+  flex-shrink:0;margin-top:1px;
+}
+.gbody{flex:1;}
+.gtitle{font-family:var(--mono);font-size:10.5px;color:var(--text);margin-bottom:3px;}
+.gdesc{font-size:10px;color:var(--text2);line-height:1.5;margin-bottom:5px;}
+.gcmd{
+  background:#030507;
+  border:1px solid var(--border);border-radius:2px;
+  padding:6px 10px;
+  font-family:var(--mono);font-size:9.5px;
+  color:var(--green);white-space:pre;
+  overflow-x:auto;cursor:pointer;
+  transition:border-color .15s;
+  position:relative;
+}
+.gcmd:hover{border-color:rgba(0,230,118,.3);}
+.gcmd:hover::after{
+  content:'COPY';position:absolute;top:4px;right:7px;
+  font-size:7.5px;color:var(--dim);letter-spacing:1px;
+}
+.gcmd .p{color:var(--dim2);}
+.gcmd .k{color:var(--accent);}
+.gcmd .c{color:var(--dim);font-style:italic;}
+
+.fblock{
+  background:#030507;border:1px solid var(--border);
+  border-radius:2px;padding:8px 10px;
+  font-family:var(--mono);font-size:9.5px;
+  color:var(--text2);line-height:1.9;
+  margin-bottom:8px;
+}
+.fd{color:var(--accent);}
+.fn2{color:var(--green);}
+.fc{color:var(--orange);}
+.fi{color:var(--dim);}
+
+.warn-box{
+  background:rgba(255,23,68,.06);
+  border:1px solid rgba(255,23,68,.25);
+  border-radius:2px;padding:8px 11px;
+  font-family:var(--mono);font-size:9.5px;
+  color:var(--red);margin-bottom:10px;
+}
+.info-box{
+  background:rgba(0,180,216,.05);
+  border:1px solid rgba(0,180,216,.2);
+  border-radius:2px;padding:8px 11px;
+  font-family:var(--mono);font-size:9.5px;
+  color:var(--accent);margin-bottom:10px;line-height:1.5;
+}
+
+/* ═══ TOAST ═══ */
+.toast{
+  position:fixed;bottom:20px;right:20px;
+  background:var(--panel);border:1px solid var(--green);
+  color:var(--green);font-family:var(--mono);font-size:10px;
+  padding:7px 14px;border-radius:3px;
+  box-shadow:0 0 16px rgba(0,230,118,.2);
+  opacity:0;transform:translateY(6px);
+  transition:all .2s;pointer-events:none;z-index:9999;
+}
+.toast.show{opacity:1;transform:translateY(0);}
+
+/* ═══ UTILS ═══ */
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+::-webkit-scrollbar{width:3px;height:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">DRONE CONTROL</div>
+  <div class="tb-sep"></div>
+  <div class="tb-stat"><div class="tb-led" id="led-mavros"></div><span id="lbl-mavros">MAVROS OFFLINE</span></div>
+  <div class="tb-sep"></div>
+  <div class="tb-stat"><div class="tb-led" id="led-avoidance"></div><span id="lbl-avoidance">AVOIDANCE OFFLINE</span></div>
+  <div class="tb-sep"></div>
+  <div class="tb-stat"><div class="tb-led" id="led-depth"></div><span id="lbl-depth">DEPTH OFFLINE</span></div>
+  <div class="topbar-right">
+    <div class="tb-stat" style="font-size:9px;color:var(--dim)">Cube+ · RPi4 · ROS2 Humble</div>
+    <div class="clock" id="clock">--:--:--</div>
+  </div>
+</div>
+
+<!-- BODY -->
+<div class="body">
+
+  <!-- LEFT: WORKSPACE TREE -->
+  <div class="left">
+    <div class="panel-head">// WORKSPACE TREE</div>
+    <div class="tree" id="tree"></div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="center">
+
+    <!-- NODES -->
+    <div class="node-section">
+      <div class="sec-head">// NODE CONTROL — toggle to start / stop</div>
+      <div class="node-grid" id="node-grid"></div>
+    </div>
+
+    <!-- INJECTOR -->
+    <div class="inj-section">
+      <div class="sec-head">// OBSTACLE INJECTOR — fake_depth_node must be running</div>
+      <div class="inj-grid">
+
+        <!-- FRONT -->
+        <div class="inj-card" id="ic-front">
+          <div class="inj-head"><div class="inj-blink"></div>FRONT OBSTACLE</div>
+          <div class="sl-row">
+            <span class="sl-lbl">dist</span>
+            <input type="range" class="sl-range" min="0.5" max="6" step="0.1" value="2.5"
+              oninput="sv('vf-d',this.value+'m')">
+            <span class="sl-val" id="vf-d">2.5m</span>
+          </div>
+          <div class="sl-row">
+            <span class="sl-lbl">dur</span>
+            <input type="range" class="sl-range" min="1" max="20" step="0.5" value="3"
+              oninput="sv('vf-t',this.value+'s')">
+            <span class="sl-val" id="vf-t">3s</span>
+          </div>
+          <div class="inj-btns" style="margin-top:8px;">
+            <button class="inj-btn btn-fire" onclick="fire('front')">INJECT</button>
+            <button class="inj-btn btn-clr"  onclick="clr('front')">CLEAR</button>
+          </div>
+        </div>
+
+        <!-- LEFT WALL -->
+        <div class="inj-card" id="ic-left">
+          <div class="inj-head"><div class="inj-blink"></div>LEFT WALL</div>
+          <div class="sl-row">
+            <span class="sl-lbl">dist</span>
+            <input type="range" class="sl-range" min="0.5" max="6" step="0.1" value="3"
+              oninput="sv('vl-d',this.value+'m')">
+            <span class="sl-val" id="vl-d">3.0m</span>
+          </div>
+          <div class="sl-row">
+            <span class="sl-lbl">dur</span>
+            <input type="range" class="sl-range" min="1" max="30" step="0.5" value="10"
+              oninput="sv('vl-t',this.value+'s')">
+            <span class="sl-val" id="vl-t">10s</span>
+          </div>
+          <label class="slant-row">
+            <input type="checkbox" id="cb-left" onchange="this.nextElementSibling.nextElementSibling.textContent=this.checked?'SLANTED':'FLAT'">
+            <div class="sl-track"></div>
+            <span class="sl-slantlbl">FLAT</span>
+          </label>
+          <div class="inj-btns">
+            <button class="inj-btn btn-fire" onclick="fire('left')">INJECT</button>
+            <button class="inj-btn btn-clr"  onclick="clr('left')">CLEAR</button>
+          </div>
+        </div>
+
+        <!-- RIGHT WALL -->
+        <div class="inj-card" id="ic-right">
+          <div class="inj-head"><div class="inj-blink"></div>RIGHT WALL</div>
+          <div class="sl-row">
+            <span class="sl-lbl">dist</span>
+            <input type="range" class="sl-range" min="0.5" max="6" step="0.1" value="3"
+              oninput="sv('vr-d',this.value+'m')">
+            <span class="sl-val" id="vr-d">3.0m</span>
+          </div>
+          <div class="sl-row">
+            <span class="sl-lbl">dur</span>
+            <input type="range" class="sl-range" min="1" max="30" step="0.5" value="10"
+              oninput="sv('vr-t',this.value+'s')">
+            <span class="sl-val" id="vr-t">10s</span>
+          </div>
+          <label class="slant-row">
+            <input type="checkbox" id="cb-right" onchange="this.nextElementSibling.nextElementSibling.textContent=this.checked?'SLANTED':'FLAT'">
+            <div class="sl-track"></div>
+            <span class="sl-slantlbl">FLAT</span>
+          </label>
+          <div class="inj-btns">
+            <button class="inj-btn btn-fire" onclick="fire('right')">INJECT</button>
+            <button class="inj-btn btn-clr"  onclick="clr('right')">CLEAR</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TERMINAL -->
+    <div class="term-wrap">
+      <div class="term-bar">
+        <div class="tdot" style="background:#ff5f56"></div>
+        <div class="tdot" style="background:#ffbd2e"></div>
+        <div class="tdot" style="background:#27c93f"></div>
+        <div class="term-title">COMMAND LOG — run these in SSH terminal on Pi</div>
+        <button class="term-clr" onclick="clrLog()">CLEAR</button>
+      </div>
+      <div class="term-body" id="term"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: GUIDE -->
+  <div class="right">
+    <div class="rtabs">
+      <button class="rtab active" onclick="gt('setup',this)">SETUP</button>
+      <button class="rtab" onclick="gt('files',this)">FILES</button>
+      <button class="rtab" onclick="gt('build',this)">BUILD</button>
+      <button class="rtab" onclick="gt('bench',this)">BENCH</button>
+    </div>
+    <div class="rbody" id="rbody"></div>
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast">✓ Copied</div>
+
+<script>
+// ─────────────────────────────────────────────
+//  CLOCK
+// ─────────────────────────────────────────────
+(function tick(){
+  const d=new Date();
+  document.getElementById('clock').textContent=
+    [d.getHours(),d.getMinutes(),d.getSeconds()]
+    .map(n=>String(n).padStart(2,'0')).join(':');
+  setTimeout(tick,1000);
+})();
+
+// ─────────────────────────────────────────────
+//  NODES
+// ─────────────────────────────────────────────
+const NODES=[
+  {
+    id:'mavros', ico:'📡',
+    name:'/mavros',
+    sub:'UART /dev/serial0 → Cube+',
+    note:'Start first always',
+    requires:[],
+    exclusive:[],
+    hled:'led-mavros', hlbl:'lbl-mavros', hname:'MAVROS',
+    cmdOn: `ros2 launch drone_avoidance mavros_cube.launch.py`,
+    cmdOff:`# Ctrl+C in MAVROS terminal`,
+  },
+  {
+    id:'fake_depth', ico:'🎭',
+    name:'/fake_depth_node',
+    sub:'Synthetic 640×480 32FC1',
+    note:'Bench only — no real cam',
+    requires:[],
+    exclusive:['realsense'],
+    hled:null,
+    cmdOn: `ros2 run drone_avoidance fake_depth_node`,
+    cmdOff:`# Ctrl+C in fake_depth terminal`,
+  },
+  {
+    id:'avoidance', ico:'🛡️',
+    name:'/side_obstacle_avoidance',
+    sub:'v5 — PCL + voxel memory',
+    note:'Needs MAVROS online',
+    requires:['mavros'],
+    exclusive:[],
+    hled:'led-avoidance', hlbl:'lbl-avoidance', hname:'AVOIDANCE',
+    cmdOn: `ros2 run drone_avoidance side_obstacle_avoidance`,
+    cmdOff:`# Ctrl+C in avoidance terminal`,
+  },
+  {
+    id:'realsense', ico:'📷',
+    name:'/realsense2_camera',
+    sub:'Intel D435 — real depth',
+    note:'Disable fake_depth first',
+    requires:[],
+    exclusive:['fake_depth'],
+    hled:'led-depth', hlbl:'lbl-depth', hname:'DEPTH',
+    cmdOn: `ros2 launch realsense2_camera rs_launch.py\n  depth_module.profile:=640x480x30\n  enable_color:=false`,
+    cmdOff:`# Ctrl+C in realsense terminal`,
+  },
+];
+
+const ST={}; // id → 'off'|'busy'|'on'
+NODES.forEach(n=>ST[n.id]='off');
+
+function renderNodes(){
+  const g=document.getElementById('node-grid');
+  g.innerHTML='';
+  NODES.forEach(n=>{
+    const s=ST[n.id];
+    const d=document.createElement('div');
+    d.className=`node-card ${s==='on'?'running':s==='busy'?'busy':s==='err'?'error':''}`;
+    d.id=`nc-${n.id}`;
+    const tCls=s==='on'?'on':s==='busy'?'busy':'';
+    const dotCls=s==='on'?'on':s==='busy'?'busy':s==='err'?'err':'';
+    const stTxt=s==='on'?'RUNNING':s==='busy'?'STARTING...':'OFFLINE';
+    const stCol=s==='on'?'var(--green)':s==='busy'?'var(--yellow)':'var(--dim2)';
+    d.innerHTML=`
+      <div class="nc-top">
+        <div class="nc-ico">${n.ico}</div>
+        <div class="nc-info">
+          <div class="nc-name">${n.name}</div>
+          <div class="nc-sub">${n.sub}</div>
+        </div>
+        <button class="nc-toggle ${tCls}" id="tog-${n.id}" onclick="toggle('${n.id}')" title="${s==='on'?'Stop':'Start'}"></button>
+      </div>
+      <div class="nc-status">
+        <div class="nc-dot ${dotCls}"></div>
+        <span style="color:${stCol}">${stTxt}</span>
+        <span class="nc-note">${n.note}</span>
+      </div>`;
+    g.appendChild(d);
+  });
+  updateHeader();
+}
+
+function updateHeader(){
+  NODES.forEach(n=>{
+    if(!n.hled)return;
+    const led=document.getElementById(n.hled);
+    const lbl=document.getElementById(n.hlbl);
+    if(!led||!lbl)return;
+    const s=ST[n.id];
+    led.className=`tb-led ${s==='on'?'on':s==='busy'?'warn':''}`;
+    lbl.textContent=n.hname+' '+(s==='on'?'ONLINE':s==='busy'?'STARTING':'OFFLINE');
+  });
+}
+
+function toggle(id){
+  const n=NODES.find(x=>x.id===id);
+  const s=ST[id];
+
+  if(s==='busy')return;
+
+  if(s==='off'){
+    // exclusive check
+    const ex=n.exclusive.find(e=>ST[e]==='on'||ST[e]==='busy');
+    if(ex){
+      log('warn',`Cannot start ${n.name} — stop /${ex} first.`);
+      return;
+    }
+    // requires check
+    const mis=n.requires.find(r=>ST[r]!=='on');
+    if(mis){
+      log('warn',`Cannot start ${n.name} — /${mis} must be running first.`);
+      return;
+    }
+    ST[id]='busy';
+    renderNodes();
+    log('cmd',n.cmdOn);
+    log('info',`Starting ${n.name}… open a new SSH terminal on the Pi and run the command above.`);
+    setTimeout(()=>{
+      ST[id]='on';
+      renderNodes();
+      log('ok',`${n.name} marked RUNNING. Confirm you see it in your SSH terminal.`);
+    },1800);
+  } else {
+    // Stop
+    ST[id]='off';
+    // cascade: if mavros stops, avoidance must stop too
+    if(id==='mavros'&&ST['avoidance']==='on'){
+      ST['avoidance']='off';
+      log('warn',`/side_obstacle_avoidance also stopped — it depends on MAVROS.`);
+    }
+    renderNodes();
+    log('warn',`${n.name} marked OFFLINE. Press Ctrl+C in its SSH terminal.`);
+    log('cmd',n.cmdOff);
+  }
+}
+
+// ─────────────────────────────────────────────
+//  OBSTACLE INJECTOR
+// ─────────────────────────────────────────────
+function fire(side){
+  if(ST['fake_depth']!=='on'){
+    log('warn',`fake_depth_node is not running. Toggle it ON first.`);
+    return;
+  }
+  const distEl=document.querySelector(`#ic-${side} .sl-range`);
+  const durEl =document.querySelectorAll(`#ic-${side} .sl-range`)[1];
+  const cbEl  =document.getElementById(`cb-${side}`);
+
+  const dist=distEl?parseFloat(distEl.value).toFixed(1):'2.5';
+  const dur =durEl ?parseFloat(durEl.value).toFixed(1):'3.0';
+  const slant=cbEl&&cbEl.checked;
+
+  const cmds=[`ros2 param set /fake_depth_node ${side}_dist ${dist}`];
+  if(side!=='front') cmds.push(`ros2 param set /fake_depth_node ${side}_duration ${dur}`);
+  else               cmds.push(`ros2 param set /fake_depth_node front_duration ${dur}`);
+  if(slant&&side!=='front') cmds.push(`ros2 param set /fake_depth_node ${side}_slant true`);
+
+  cmds.forEach(c=>log('cmd',c));
+  log('ok',`${side.toUpperCase()} obstacle fired — ${dist}m for ${dur}s${slant?' [SLANTED]':''}`);
+
+  const card=document.getElementById(`ic-${side}`);
+  card.classList.add('fired');
+  setTimeout(()=>card.classList.remove('fired'), parseFloat(dur)*1000);
+}
+
+function clr(side){
+  if(ST['fake_depth']!=='on'){log('warn','fake_depth_node is not running.');return;}
+  log('cmd',`ros2 param set /fake_depth_node ${side}_dist -1.0`);
+  if(side!=='front') log('cmd',`ros2 param set /fake_depth_node ${side}_slant false`);
+  log('info',`${side.toUpperCase()} obstacle cleared.`);
+  document.getElementById(`ic-${side}`).classList.remove('fired');
+}
+
+function sv(id,v){document.getElementById(id).textContent=v;}
+
+// ─────────────────────────────────────────────
+//  LOG
+// ─────────────────────────────────────────────
+function log(type,msg){
+  const tb=document.getElementById('term');
+  const d=new Date();
+  const ts=[d.getHours(),d.getMinutes(),d.getSeconds()].map(n=>String(n).padStart(2,'0')).join(':');
+  const pre=type==='cmd'?'$ ':type==='ok'?'✓ ':type==='warn'?'⚠ ':type==='err'?'✗ ':'  ';
+  const line=document.createElement('div');
+  line.className='tl';
+  line.innerHTML=`<span class="ts">${ts}</span><span class="tc-${type}">${pre}${msg}</span>`;
+  tb.appendChild(line);
+  tb.scrollTop=tb.scrollHeight;
+}
+function clrLog(){
+  document.getElementById('term').innerHTML='';
+  log('dim','Log cleared.');
+}
+
+// ─────────────────────────────────────────────
+//  WORKSPACE TREE
+// ─────────────────────────────────────────────
+const TREE=[
+  {t:'d',n:'~/ros2_ws/',d:0},
+  {t:'d',n:'src/',d:1},
+  {t:'d',n:'drone_avoidance/',d:2,note:'← your package'},
+  {t:'f',n:'package.xml',d:3,tag:'NEW',tab:'files'},
+  {t:'f',n:'CMakeLists.txt',d:3,tag:'NEW',tab:'files'},
+  {t:'d',n:'src/',d:3},
+  {t:'f',n:'side_obstacle_avoidance_v5.cpp',d:4,tag:'NEW',tab:'files'},
+  {t:'f',n:'fake_depth_node.cpp',d:4,tag:'NEW',tab:'files'},
+  {t:'d',n:'launch/',d:3},
+  {t:'f',n:'mavros_cube.launch.py',d:4,tag:'NEW',tab:'build'},
+  {t:'f',n:'bench_test.launch.py',d:4,tag:'NEW',tab:'bench'},
+  {t:'f',n:'full_mission.launch.py',d:4,tag:'NEW',tab:'bench'},
+  {t:'d',n:'config/',d:3},
+  {t:'f',n:'mavros_params.yaml',d:4,tag:'CFG',tab:'build'},
+  {t:'d',n:'build/',d:1,note:'← auto by colcon'},
+  {t:'d',n:'install/',d:1,note:'← auto by colcon'},
+  {t:'d',n:'log/',d:1,note:'← auto by colcon'},
+];
+
+function renderTree(){
+  const el=document.getElementById('tree');
+  el.innerHTML='';
+  TREE.forEach(item=>{
+    const row=document.createElement('div');
+    const isDir=item.t==='d';
+    row.className=`tree-item${isDir?' dir':''}`;
+    if(item.tab) row.onclick=()=>gt(item.tab,null);
+    const tagHtml=item.tag
+      ?`<span class="ti-tag ${item.tag==='CFG'?'tg-cfg':'tg-new'}">${item.tag}</span>`:'';
+    const noteHtml=item.note?`<span class="ti-note">${item.note}</span>`:'';
+    row.innerHTML=`
+      <span class="ti-in" style="width:${item.d*14}px"></span>
+      <span class="ti-ico">${isDir?'📁':'📄'}</span>
+      <span class="ti-name" style="color:${isDir?'var(--accent)':'var(--text2)'}">${item.n}</span>
+      ${noteHtml}${tagHtml}`;
+    el.appendChild(row);
+  });
+}
+
+// ─────────────────────────────────────────────
+//  GUIDE CONTENT
+// ─────────────────────────────────────────────
+const GUIDES={
+setup:`
+<div class="info-box">One-time setup on the Raspberry Pi. Do these steps in order on a fresh Pi 4 running Ubuntu 22.04.</div>
+
+<div class="gstep"><div class="gnum">1</div><div class="gbody">
+  <div class="gtitle">SSH into the Pi</div>
+  <div class="gdesc">Pi creates a WiFi hotspot. Laptop connects to it. Pi IP is always 10.42.0.1 as the host.</div>
+  <div class="gcmd" onclick="cp(this)"><span class="p"># On Pi — create hotspot once
+pi$ </span>sudo nmcli device wifi hotspot ssid DroneNet password drone1234
+<span class="p"># Laptop connects to 'DroneNet', then:
+laptop$ </span>ssh pi@10.42.0.1</div>
+</div></div>
+
+<div class="gstep"><div class="gnum">2</div><div class="gbody">
+  <div class="gtitle">Install ROS 2 Humble + MAVROS + PCL</div>
+  <div class="gdesc">Run on Pi. Takes ~15 min. Only needed once.</div>
+  <div class="gcmd" onclick="cp(this)"><span class="p">pi$ </span>sudo apt update
+<span class="p">pi$ </span>sudo apt install -y ros-humble-desktop \
+  ros-humble-mavros ros-humble-mavros-extras \
+  ros-humble-pcl-ros ros-humble-pcl-conversions \
+  ros-humble-cv-bridge libpcl-dev
+<span class="p">pi$ </span>ros2 run mavros install_geographiclib_datasets.sh</div>
+</div></div>
+
+<div class="gstep"><div class="gnum">3</div><div class="gbody">
+  <div class="gtitle">Enable UART on Pi (for Cube+ TELEM2)</div>
+  <div class="gdesc">Cube+ TELEM2 wires to Pi GPIO UART. This enables it.</div>
+  <div class="gcmd" onclick="cp(this)"><span class="p">pi$ </span>sudo raspi-config
+<span class="c">  # Interface Options → Serial Port
+  # "Login shell over serial?" → NO
+  # "Serial port hardware enabled?" → YES</span>
+<span class="p">pi$ </span>sudo reboot
+<span class="c"># After reboot, verify:</span>
+<span class="p">pi$ </span>ls /dev/serial0   <span class="c"># must exist</span></div>
+</div></div>
+
+<div class="gstep"><div class="gnum">4</div><div class="gbody">
+  <div class="gtitle">Set ROS_DOMAIN_ID on both machines</div>
+  <div class="gdesc">So laptop can echo Pi topics live without any extra setup.</div>
+  <div class="gcmd" onclick="cp(this)"><span class="p">pi$ </span>echo 'export ROS_DOMAIN_ID=42' >> ~/.bashrc
+<span class="p">pi$ </span>echo 'export ROS_LOCALHOST_ONLY=0' >> ~/.bashrc
+<span class="p">pi$ </span>echo 'source ~/ros2_ws/install/setup.bash' >> ~/.bashrc
+<span class="p">pi$ </span>source ~/.bashrc
+
+<span class="c"># On laptop (run each SSH session):</span>
+<span class="p">laptop$ </span>export ROS_DOMAIN_ID=42 ROS_LOCALHOST_ONLY=0</div>
+</div></div>
+
+<div class="gstep"><div class="gnum">5</div><div class="gbody">
+  <div class="gtitle">ArduPilot params via Mission Planner</div>
+  <div class="gdesc">Connect Mission Planner via SiK radio → Full Parameter List → set these 5 params.</div>
+  <div class="gcmd" onclick="cp(this)">SERIAL2_PROTOCOL  = 2    <span class="c">← MAVLink on TELEM2 (Pi)</span>
+SERIAL2_BAUD      = 921  <span class="c">← 921600 baud</span>
+SERIAL1_PROTOCOL  = 2    <span class="c">← MAVLink on TELEM1 (SiK)</span>
+SERIAL1_BAUD      = 57   <span class="c">← 57600 baud</span>
+GUID_OPTIONS      = 0    <span class="c">← allow velocity cmds</span></div>
+</div></div>
+
+<div class="gstep"><div class="gnum">6</div><div class="gbody">
+  <div class="gtitle">TELEM2 → Pi UART wiring</div>
+  <div class="gdesc">Cube+ TELEM2 JST connector to Pi GPIO header. Use level shifter or check voltage.</div>
+  <div class="gcmd" onclick="cp(this)">Cube+ TELEM2    Pi GPIO
+──────────────────────────
+Pin 2  VCC 5V  → Pin 4  (5V)
+Pin 3  GND     → Pin 6  (GND)
+Pin 4  TX      → Pin 10 (GPIO15 RXD)
+Pin 5  RX      → Pin 8  (GPIO14 TXD)</div>
+</div></div>
+`,
+
+files:`
+<div class="info-box">Every file you need to create. Click any filename in the tree to jump here. All files go inside ~/ros2_ws/src/drone_avoidance/</div>
+
+<div class="gtitle" style="margin-bottom:8px;font-size:11px;">Complete folder layout</div>
+<div class="fblock">
+<span class="fd">drone_avoidance/</span>
+├── <span class="fn2">package.xml</span>
+├── <span class="fn2">CMakeLists.txt</span>
+│
+├── <span class="fd">src/</span>
+│   ├── <span class="fn2">side_obstacle_avoidance_v5.cpp</span>  ← main node
+│   └── <span class="fn2">fake_depth_node.cpp</span>             ← bench injector
+│
+├── <span class="fd">launch/</span>
+│   ├── <span class="fc">mavros_cube.launch.py</span>      ← MAVROS → Cube+
+│   ├── <span class="fc">bench_test.launch.py</span>       ← bench test
+│   └── <span class="fc">full_mission.launch.py</span>     ← real D435 flight
+│
+└── <span class="fd">config/</span>
+    └── <span class="fc">mavros_params.yaml</span>
+</div>
+
+<div class="gstep"><div class="gnum">!</div><div class="gbody">
+  <div class="gtitle">package.xml — paste this exactly</div>
+  <div class="gcmd" onclick="cp(this)">&lt;?xml version="1.0"?&gt;
+&lt;package format="3"&gt;
+  &lt;name&gt;drone_avoidance&lt;/name&gt;
+  &lt;version&gt;1.0.0&lt;/version&gt;
+  &lt;description&gt;Obstacle avoidance v5&lt;/description&gt;
+  &lt;maintainer email="you@example.com"&gt;You&lt;/maintainer&gt;
+  &lt;license&gt;MIT&lt;/license&gt;
+  &lt;buildtool_depend&gt;ament_cmake&lt;/buildtool_depend&gt;
+  &lt;depend&gt;rclcpp&lt;/depend&gt;
+  &lt;depend&gt;sensor_msgs&lt;/depend&gt;
+  &lt;depend&gt;geometry_msgs&lt;/depend&gt;
+  &lt;depend&gt;mavros_msgs&lt;/depend&gt;
+  &lt;depend&gt;cv_bridge&lt;/depend&gt;
+  &lt;depend&gt;pcl_ros&lt;/depend&gt;
+  &lt;depend&gt;pcl_conversions&lt;/depend&gt;
+  &lt;export&gt;
+    &lt;build_type&gt;ament_cmake&lt;/build_type&gt;
+  &lt;/export&gt;
+&lt;/package&gt;</div>
+</div></div>
+
+<div class="gstep"><div class="gnum">!</div><div class="gbody">
+  <div class="gtitle">CMakeLists.txt — key sections</div>
+  <div class="gcmd" onclick="cp(this)">cmake_minimum_required(VERSION 3.8)
+project(drone_avoidance)
+set(CMAKE_CXX_STANDARD 17)
+
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(mavros_msgs REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(OpenCV REQUIRED)
+find_package(PCL REQUIRED COMPONENTS common filters)
+find_package(pcl_conversions REQUIRED)
+find_package(pcl_ros REQUIRED)
+
+add_executable(side_obstacle_avoidance
+  src/side_obstacle_avoidance_v5.cpp)
+ament_target_dependencies(side_obstacle_avoidance
+  rclcpp sensor_msgs geometry_msgs mavros_msgs
+  cv_bridge pcl_ros pcl_conversions)
+target_link_libraries(side_obstacle_avoidance
+  ${OpenCV_LIBS} ${PCL_LIBRARIES})
+target_include_directories(side_obstacle_avoidance PRIVATE
+  ${PCL_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
+
+add_executable(fake_depth_node
+  src/fake_depth_node.cpp)
+ament_target_dependencies(fake_depth_node
+  rclcpp sensor_msgs)
+
+install(TARGETS
+  side_obstacle_avoidance fake_depth_node
+  DESTINATION lib/${PROJECT_NAME})
+install(DIRECTORY launch config
+  DESTINATION share/${PROJECT_NAME})
+
+ament_package()</div>
+</div></div>
+
+<div class="gstep"><div class="gnum">!</div><div class="gbody">
+  <div class="gtitle">Copy .cpp files from laptop to Pi</div>
+  <div class="gcmd" onclick="cp(this)"><span class="p">laptop$ </span>scp side_obstacle_avoidance_v5.cpp \
+  pi@10.42.0.1:~/ros2_ws/src/drone_avoidance/src/
+<span class="p">laptop$ </span>scp fake_depth_node.cpp \
+  pi@10.42.0.1:~/ros2_ws/src/drone_avoidance/src/</div>
+</div></div>
+
+<div class="gstep"><div class="gnum">!</div><div class="gbody">
+  <div class="gtitle">mavros_cube.launch.py</div>
+  <div class="gcmd" onclick="cp(this)">from launch import LaunchDescription
+from launch_ros.actions import Node
+
+def generate_launch_description():
+    GCS_IP = "10.42.0.100"  <span class="c"># your laptop IP</span>
+    return LaunchDescription([Node(
+        package='mavros',
+        executable='mavros_node',
+        name='mavros',
+        output='screen',
+        parameters=[{
+            'fcu_url': '/dev/serial0:921600',
+            'gcs_url': f'udp://:14550@{GCS_IP}:14550',
+            'target_system_id': 1,
+            'target_component_id': 1,
+            'local_position/pose': 30.0,
+        }],
+    )])</div>
+</div></div>
+
+<div class="gstep"><div class="gnum">!</div><div class="gbody">
+  <div class="gtitle">bench_test.launch.py</div>
+  <div class="gcmd" onclick="cp(this)">from launch import LaunchDescription
+from launch_ros.actions import Node
+
+def generate_launch_description():
+    return LaunchDescription([
+        Node(package='drone_avoidance',
+             executable='fake_depth_node',
+             name='fake_depth_node',
+             output='screen',
+             parameters=[{
+                 'background_dist': 10.0,
+                 'publish_rate': 10,
+             }]),
+        Node(package='drone_avoidance',
+             executable='side_obstacle_avoidance',
+             name='side_obstacle_avoidance',
+             output='screen'),
+    ])</div>
+</div></div>
+`,
+
+build:`
+<div class="gstep"><div class="gnum">1</div><div class="gbody">
+  <div class="gtitle">Create the package skeleton (once)</div>
+  <div class="gcmd" onclick="cp(this)"><span class="p">pi$ </span>mkdir -p ~/ros2_ws/src && cd ~/ros2_ws/src
+<span class="p">pi$ </span>ros2 pkg create drone_avoidance --build-type ament_cmake
+<span class="p">pi$ </span>mkdir -p drone_avoidance/launch drone_avoidance/config
+<span class="c"># Now replace package.xml and CMakeLists.txt
+# with the content from the FILES tab</span></div>
+</div></div>
+
+<div class="gstep"><div class="gnum">2</div><div class="gbody">
+  <div class="gtitle">Speed up builds (4 cores)</div>
+  <div class="gdesc">Creates colcon.meta at workspace root. Cuts build time from ~12 min to ~3 min on Pi 4.</div>
+  <div class="gcmd" onclick="cp(this)"><span class="p">pi$ </span>cd ~/ros2_ws
+<span class="p">pi$ </span>cat > colcon.meta << 'EOF'
+{"names":{"colcon-core":{"args":
+["--parallel-workers","4"]}}}
+EOF</div>
+</div></div>
+
+<div class="gstep"><div class="gnum">3</div><div class="gbody">
+  <div class="gtitle">Build — run every time you change a .cpp file</div>
+  <div class="gcmd" onclick="cp(this)"><span class="p">pi$ </span>cd ~/ros2_ws
+<span class="p">pi$ </span>colcon build --symlink-install \
+  --packages-select drone_avoidance
+<span class="p">pi$ </span>source install/setup.bash</div>
+</div></div>
+
+<div class="gstep"><div class="gnum">4</div><div class="gbody">
+  <div class="gtitle">Verify both executables exist</div>
+  <div class="gcmd" onclick="cp(this)"><span class="p">pi$ </span>ros2 pkg executables drone_avoidance
+<span class="c"># Expected output:
+# drone_avoidance fake_depth_node
+# drone_avoidance side_obstacle_avoidance</span></div>
+</div></div>
+
+<div class="gstep"><div class="gnum">5</div><div class="gbody">
+  <div class="gtitle">Verify UART link to Cube+</div>
+  <div class="gcmd" onclick="cp(this)"><span class="p">pi$ </span>ls /dev/serial0      <span class="c"># must exist</span>
+<span class="p">pi$ </span>ros2 launch drone_avoidance mavros_cube.launch.py
+<span class="c"># Watch for: FCU: APM: ArduCopter ... connected</span></div>
+</div></div>
+
+<div class="gstep"><div class="gnum">6</div><div class="gbody">
+  <div class="gtitle">Monitor topics from laptop</div>
+  <div class="gcmd" onclick="cp(this)"><span class="p">laptop$ </span>export ROS_DOMAIN_ID=42 ROS_LOCALHOST_ONLY=0
+<span class="p">laptop$ </span>ros2 node list
+<span class="c"># /mavros  /fake_depth_node  /side_obstacle_avoidance</span>
+<span class="p">laptop$ </span>ros2 topic echo /mavros/state
+<span class="p">laptop$ </span>ros2 topic echo /mavros/setpoint_velocity/cmd_vel_unstamped</div>
+</div></div>
+`,
+
+bench:`
+<div class="warn-box">⚠ REMOVE PROPELLERS before any bench test. Motors will arm and spin immediately.</div>
+
+<div class="info-box">Exact sequence every bench test session. Open 3 SSH terminals on Pi.</div>
+
+<div class="gstep"><div class="gnum">1</div><div class="gbody">
+  <div class="gtitle">SSH Terminal 1 — Start MAVROS</div>
+  <div class="gdesc">Always start this first. Wait for "FCU connected" before proceeding.</div>
+  <div class="gcmd" onclick="cp(this)"><span class="p">pi$ </span>ros2 launch drone_avoidance mavros_cube.launch.py
+<span class="c"># Wait for: [ INFO] FCU: APM: ArduCopter connected</span></div>
+</div></div>
+
+<div class="gstep"><div class="gnum">2</div><div class="gbody">
+  <div class="gtitle">SSH Terminal 2 — Start bench test</div>
+  <div class="gdesc">This is the "press Enter" moment — starts fake depth + avoidance together.</div>
+  <div class="gcmd" onclick="cp(this)"><span class="p">pi$ </span>ros2 launch drone_avoidance bench_test.launch.py
+<span class="c"># Watch state machine:
+# WARMUP → GUIDED → ARMING → TAKEOFF → MISSION → CRUISING</span></div>
+</div></div>
+
+<div class="gstep"><div class="gnum">3</div><div class="gbody">
+  <div class="gtitle">SSH Terminal 3 — Inject obstacles live</div>
+  <div class="gdesc">Use the OBSTACLE INJECTOR above, or run these commands directly:</div>
+  <div class="gcmd" onclick="cp(this)"><span class="c">── Front obstacle → triggers LATERAL_SHIFT ──</span>
+<span class="p">pi$ </span>ros2 param set /fake_depth_node front_dist 2.5
+
+<span class="c">── Left flat wall → tests WALL_FOLLOWING ──</span>
+<span class="p">pi$ </span>ros2 param set /fake_depth_node left_dist 3.0
+<span class="p">pi$ </span>ros2 param set /fake_depth_node left_duration 10.0
+
+<span class="c">── Right slanted wall → tests slant detection ──</span>
+<span class="p">pi$ </span>ros2 param set /fake_depth_node right_dist 2.0
+<span class="p">pi$ </span>ros2 param set /fake_depth_node right_slant true
+<span class="p">pi$ </span>ros2 param set /fake_depth_node slant_delta 2.5
+
+<span class="c">── Clear everything ──</span>
+<span class="p">pi$ </span>ros2 param set /fake_depth_node front_dist -1.0
+<span class="p">pi$ </span>ros2 param set /fake_depth_node left_dist  -1.0
+<span class="p">pi$ </span>ros2 param set /fake_depth_node right_dist -1.0</div>
+</div></div>
+
+<div class="gstep"><div class="gnum">4</div><div class="gbody">
+  <div class="gtitle">Emergency stop (any terminal)</div>
+  <div class="gcmd" onclick="cp(this)"><span class="p">pi$ </span>ros2 service call /mavros/cmd/arming \
+  mavros_msgs/srv/CommandBool "{value: false}"
+<span class="c"># OR: disarm via Mission Planner on laptop</span></div>
+</div></div>
+
+<div class="gstep"><div class="gnum">5</div><div class="gbody">
+  <div class="gtitle">When you get a real D435 camera</div>
+  <div class="gdesc">Stop fake_depth_node. Use full_mission.launch.py instead. No C++ code changes needed.</div>
+  <div class="gcmd" onclick="cp(this)"><span class="c"># Install realsense SDK first:</span>
+<span class="p">pi$ </span>sudo apt install ros-humble-realsense2-camera
+
+<span class="c"># Then launch (replaces bench_test.launch.py):</span>
+<span class="p">pi$ </span>ros2 launch drone_avoidance full_mission.launch.py</div>
+</div></div>
+`
+};
+
+function gt(tab, btn){
+  document.querySelectorAll('.rtab').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  else{
+    const tabs=['setup','files','build','bench'];
+    const i=tabs.indexOf(tab);
+    if(i>=0) document.querySelectorAll('.rtab')[i].classList.add('active');
+  }
+  const b=document.getElementById('rbody');
+  b.style.opacity='0';
+  setTimeout(()=>{
+    b.innerHTML=GUIDES[tab]||'';
+    b.style.cssText='opacity:1;transition:opacity .18s;';
+  },100);
+}
+
+// ─────────────────────────────────────────────
+//  COPY
+// ─────────────────────────────────────────────
+function cp(el){
+  const txt=el.innerText
+    .replace(/^(pi\$ |laptop\$ |   |  )/gm,'')
+    .replace(/# .+/g,'')
+    .trim();
+  navigator.clipboard.writeText(txt).then(()=>{
+    const t=document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'),1600);
+  });
+}
+
+// ─────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────
+renderTree();
+renderNodes();
+gt('setup', document.querySelector('.rtab.active'));
+
+log('dim','GUI ready. Node toggles generate SSH commands for the Pi terminal.');
+log('dim','Recommended sequence: MAVROS → fake_depth_node → side_obstacle_avoidance');
+log('info','Click the SETUP tab on the right to begin from scratch.');
+</script>
+</body>
+</html>

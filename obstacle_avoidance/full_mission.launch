@@ -1,0 +1,78 @@
+"""
+full_mission.launch.py
+───────────────────────
+Real flight launcher — uses Intel RealSense D435 depth camera.
+
+Starts TWO nodes:
+  1. realsense2_camera  — publishes real depth from D435
+  2. side_obstacle_avoidance — main avoidance node
+
+BEFORE RUNNING:
+  - Install RealSense ROS2 driver first (one-time on Pi):
+    sudo apt install ros-humble-realsense2-camera
+  - Plug D435 into Pi USB 3.0 port (blue port)
+  - Start MAVROS first:
+    ros2 launch drone_avoidance mavros_cube.launch.py
+  - Do NOT run bench_test.launch.py at the same time as this
+
+USAGE:
+  ros2 launch drone_avoidance full_mission.launch.py
+
+DIFFERENCE FROM BENCH TEST:
+  - fake_depth_node is NOT started
+  - Real D435 camera publishes depth
+  - Topic is remapped: /camera/depth/image_rect_raw → /realsense/depth_image
+  - The avoidance node C++ code is IDENTICAL — no changes needed
+"""
+
+from launch import LaunchDescription
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch_ros.actions import Node
+from ament_index_python.packages import get_package_share_directory
+import os
+
+
+def generate_launch_description():
+
+    # ── RealSense launch file path ────────────────────────────────────────────
+    realsense_pkg = get_package_share_directory("realsense2_camera")
+    realsense_launch = os.path.join(realsense_pkg, "launch", "rs_launch.py")
+
+    return LaunchDescription([
+
+        # ── Node 1: Real RealSense D435 ───────────────────────────────────────
+        # Publishes /camera/depth/image_rect_raw (remapped below to what
+        # the avoidance node expects: /realsense/depth_image)
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(realsense_launch),
+            launch_arguments={
+                # 640x480 at 30 fps — matches avoidance node's assumed resolution
+                "depth_module.profile": "640x480x30",
+
+                # Disable colour stream — saves USB bandwidth and CPU on Pi
+                "enable_color": "false",
+                "enable_infra1": "false",
+                "enable_infra2": "false",
+
+                # Use 32-bit float depth (matches avoidance node 32FC1 decode)
+                "depth_module.depth_profile": "640x480x30",
+            }.items(),
+        ),
+
+        # ── Node 2: Main avoidance node ───────────────────────────────────────
+        # Identical to bench_test — only difference is topic remap below
+        Node(
+            package="drone_avoidance",
+            executable="side_obstacle_avoidance",
+            name="side_obstacle_avoidance",
+            output="screen",
+            remappings=[
+                # D435 SDK publishes on /camera/depth/image_rect_raw
+                # Avoidance node subscribes to /realsense/depth_image
+                # This remap makes them connect — no C++ code change needed
+                ("/realsense/depth_image", "/camera/depth/image_rect_raw"),
+            ],
+        ),
+
+    ])

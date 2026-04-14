@@ -1,0 +1,77 @@
+"""
+mavros_cube.launch.py
+─────────────────────
+Starts MAVROS connected to Cube+ FC over Pi UART (TELEM2 port).
+Also forwards MAVLink to your laptop GCS over UDP.
+
+BEFORE RUNNING:
+  1. Cube+ TELEM2 → Pi GPIO UART wired (see setup guide)
+  2. SERIAL2_PROTOCOL=2, SERIAL2_BAUD=921 set in ArduPilot params
+  3. Verify /dev/serial0 exists on Pi
+
+USAGE:
+  ros2 launch drone_avoidance mavros_cube.launch.py
+  ros2 launch drone_avoidance mavros_cube.launch.py gcs_ip:=192.168.1.50
+"""
+
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
+
+
+def generate_launch_description():
+
+    # ── Change this to your laptop's IP on the DroneNet hotspot ──────────────
+    # Find it by running: ip addr show wlan0  on your laptop while connected
+    # It will be something like 10.42.0.100
+    DEFAULT_GCS_IP = "10.42.0.100"
+
+    return LaunchDescription([
+
+        # Allow overriding GCS IP from command line:
+        # ros2 launch drone_avoidance mavros_cube.launch.py gcs_ip:=10.42.0.50
+        DeclareLaunchArgument(
+            "gcs_ip",
+            default_value=DEFAULT_GCS_IP,
+            description="Laptop IP for GCS MAVLink forwarding"
+        ),
+
+        Node(
+            package="mavros",
+            executable="mavros_node",
+            name="mavros",
+            output="screen",
+            parameters=[{
+                # ── Cube+ connection via Pi UART ──────────────────────────────
+                # /dev/serial0 is the Pi's hardware UART (GPIO pins 8 & 10)
+                # 921600 baud — must match SERIAL2_BAUD=921 in ArduPilot
+                "fcu_url": "/dev/serial0:921600",
+
+                # ── Forward MAVLink to laptop Mission Planner over WiFi ───────
+                # This keeps your SiK radio telemetry working alongside Pi
+                "gcs_url": ["udp://:14550@", LaunchConfiguration("gcs_ip"), ":14550"],
+
+                "target_system_id": 1,
+                "target_component_id": 1,
+
+                # ── Stream rates (Hz) ─────────────────────────────────────────
+                # local_position/pose feeds dx_, dy_, alt_, dyaw_ in avoidance node
+                "local_position/pose": 30.0,
+
+                # Disable streams the avoidance node doesn't use (saves CPU)
+                "imu/data": 0.0,
+                "global_position/global": 0.0,
+
+                # ── Plugin whitelist — only load what we use ──────────────────
+                "plugin_allowlist": [
+                    "rc_io",
+                    "sys_status",
+                    "command",
+                    "setpoint_velocity",
+                    "local_position",
+                    "param",
+                ],
+            }],
+        ),
+    ])

@@ -1,0 +1,65 @@
+# mavros_params.yaml
+# ────────────────────────────────────────────────────────────────────────────
+# MAVROS configuration for Cube+ FC connected to Raspberry Pi over UART.
+#
+# This file is referenced by mavros_cube.launch.py.
+# You can also load it directly:
+#   ros2 launch mavros mavros.launch.py fcu_url:=/dev/serial0:921600
+#     --ros-args --params-file config/mavros_params.yaml
+#
+# Most settings are already set in mavros_cube.launch.py — this file
+# is kept for reference and advanced tuning.
+# ────────────────────────────────────────────────────────────────────────────
+
+mavros:
+  ros__parameters:
+
+    # ── FCU connection ────────────────────────────────────────────────────────
+    # Pi UART → Cube+ TELEM2
+    # /dev/serial0 = GPIO pins 8 (TX) and 10 (RX)
+    # Must match SERIAL2_BAUD=921 in ArduPilot parameters
+    fcu_url: "/dev/serial0:921600"
+
+    # GCS UDP forwarding — set in launch file via gcs_ip argument
+    # Format: udp://:14550@<laptop_ip>:14550
+    gcs_url: ""
+
+    target_system_id: 1
+    target_component_id: 1
+
+    # ── Message stream rates (Hz) ─────────────────────────────────────────────
+    # Only enable what the avoidance node actually subscribes to.
+    # Higher rates = more UART bandwidth used.
+
+    # /mavros/local_position/pose — feeds dx_, dy_, alt_, dyaw_ in avoidance node
+    # 30 Hz is sufficient for 10 Hz control loop
+    local_position/pose: 30.0
+
+    # /mavros/state — connected, armed, mode — avoidance node checks this
+    sys_status: 1.0
+
+    # Disable everything else to reduce Pi CPU and UART load
+    imu/data: 0.0
+    imu/data_raw: 0.0
+    imu/mag: 0.0
+    global_position/global: 0.0
+    global_position/local: 0.0
+    battery: 0.0
+
+    # ── Plugin whitelist ──────────────────────────────────────────────────────
+    # Only load plugins the avoidance node needs.
+    # Unlisted plugins are not loaded — reduces startup time and RAM.
+    #
+    # sys_status    → /mavros/state (armed, mode, connected)
+    # command       → /mavros/cmd/arming, /mavros/cmd/takeoff, /mavros/set_mode
+    # setpoint_velocity → /mavros/setpoint_velocity/cmd_vel_unstamped
+    # local_position → /mavros/local_position/pose
+    # param         → parameter sync with FC
+    # rc_io         → RC input passthrough (needed for failsafe)
+    plugin_allowlist:
+      - rc_io
+      - sys_status
+      - command
+      - setpoint_velocity
+      - local_position
+      - param

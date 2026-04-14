@@ -1,0 +1,88 @@
+"""
+bench_test.launch.py
+─────────────────────
+Bench test launcher — NO real camera needed.
+
+Starts TWO nodes together:
+  1. fake_depth_node      — publishes synthetic 32FC1 depth image at 10 Hz
+  2. side_obstacle_avoidance — main avoidance node, subscribes to that depth
+
+BEFORE RUNNING:
+  - Start MAVROS first in a separate terminal:
+    ros2 launch drone_avoidance mavros_cube.launch.py
+  - REMOVE PROPELLERS — motors will arm
+
+USAGE:
+  ros2 launch drone_avoidance bench_test.launch.py
+
+INJECT OBSTACLES AT RUNTIME (in a third terminal):
+  ros2 param set /fake_depth_node front_dist 2.5       # front obstacle at 2.5m
+  ros2 param set /fake_depth_node left_dist  3.0       # left wall at 3.0m
+  ros2 param set /fake_depth_node right_dist 2.0       # right wall at 2.0m
+  ros2 param set /fake_depth_node left_slant  true     # make left wall slanted
+  ros2 param set /fake_depth_node right_slant true     # make right wall slanted
+  ros2 param set /fake_depth_node slant_delta 2.5      # slant depth difference
+  ros2 param set /fake_depth_node front_dist -1.0      # clear front obstacle
+  ros2 param set /fake_depth_node left_dist  -1.0      # clear left wall
+  ros2 param set /fake_depth_node right_dist -1.0      # clear right wall
+
+OR use the GUI at: http://10.42.0.1:8080/drone_gui.html
+"""
+
+from launch import LaunchDescription
+from launch_ros.actions import Node
+
+
+def generate_launch_description():
+    return LaunchDescription([
+
+        # ── Node 1: Fake depth publisher ──────────────────────────────────────
+        # Publishes /realsense/depth_image (32FC1, 640x480) at 10 Hz
+        # Default: everything at 10.0m = no obstacle = avoidance node CRUISES
+        # Inject obstacles live with ros2 param set (see header comments above)
+        Node(
+            package="drone_avoidance",
+            executable="fake_depth_node",
+            name="fake_depth_node",
+            output="screen",
+            parameters=[{
+                # Default depth everywhere — avoidance sees "all clear"
+                "background_dist": 10.0,
+
+                # Publish rate — must be >= avoidance node's subscription rate
+                "publish_rate": 10,
+
+                # Image size — must match kFx/kFy in avoidance node (640x480)
+                "image_width": 640,
+                "image_height": 480,
+
+                # Gaussian noise on depth values (0 = clean, 0.05 = realistic)
+                "noise_stddev": 0.0,
+
+                # All obstacles start disabled (-1 = off)
+                "front_dist": -1.0,
+                "left_dist":  -1.0,
+                "right_dist": -1.0,
+                "left_slant":  False,
+                "right_slant": False,
+                "slant_delta": 2.0,
+
+                # Duration each obstacle stays active after injection
+                "front_duration": 3.0,
+                "left_duration":  10.0,
+                "right_duration": 10.0,
+            }],
+        ),
+
+        # ── Node 2: Main avoidance node ───────────────────────────────────────
+        # Subscribes to /realsense/depth_image (published by fake_depth_node above)
+        # Publishes /mavros/setpoint_velocity/cmd_vel_unstamped → MAVROS → Cube+
+        # State machine: WARMUP → GUIDED → ARMING → TAKEOFF → MISSION
+        Node(
+            package="drone_avoidance",
+            executable="side_obstacle_avoidance",
+            name="side_obstacle_avoidance",
+            output="screen",
+        ),
+
+    ])

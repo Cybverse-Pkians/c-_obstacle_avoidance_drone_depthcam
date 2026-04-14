@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Complete Setup Guide — Drone Avoidance</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600&family=Sora:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:     #0a0e13;
+  --bg2:    #0f1520;
+  --bg3:    #141d2b;
+  --card:   #111928;
+  --bdr:    #1e2d42;
+  --bdr2:   #2a3f58;
+  --blue:   #38bdf8;
+  --blue2:  #0ea5e9;
+  --green:  #34d399;
+  --green2: #10b981;
+  --red:    #f87171;
+  --orange: #fb923c;
+  --yellow: #fbbf24;
+  --purple: #a78bfa;
+  --pink:   #f472b6;
+  --dim:    #334155;
+  --dim2:   #4a6380;
+  --text:   #e2eaf4;
+  --text2:  #8ba3bc;
+  --mono:   'Fira Code', monospace;
+  --sans:   'Sora', sans-serif;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  font-size:14px;
+  line-height:1.6;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:3px;}
+
+/* ── LAYOUT ── */
+.page{display:grid;grid-template-columns:220px 1fr;min-height:100vh;}
+
+/* ── SIDEBAR NAV ── */
+nav{
+  position:sticky;top:0;height:100vh;
+  background:var(--bg2);
+  border-right:1px solid var(--bdr);
+  overflow-y:auto;
+  padding:20px 0;
+  display:flex;flex-direction:column;
+}
+.nav-logo{
+  padding:0 18px 20px;
+  border-bottom:1px solid var(--bdr);
+  margin-bottom:12px;
+}
+.nav-logo .mark{
+  font-family:var(--mono);font-size:10px;
+  color:var(--blue);letter-spacing:2px;
+  display:block;margin-bottom:4px;
+}
+.nav-logo .title{
+  font-size:13px;font-weight:700;
+  color:var(--text);line-height:1.3;
+}
+
+.nav-section{
+  padding:10px 18px 4px;
+  font-family:var(--mono);font-size:9px;
+  letter-spacing:2px;color:var(--dim2);
+  text-transform:uppercase;margin-top:8px;
+}
+.nav-link{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 18px;
+  font-size:12px;color:var(--text2);
+  text-decoration:none;
+  border-left:2px solid transparent;
+  transition:all .15s;
+  cursor:pointer;
+}
+.nav-link:hover{color:var(--text);background:rgba(56,189,248,.04);}
+.nav-link.active{
+  color:var(--blue);
+  border-left-color:var(--blue);
+  background:rgba(56,189,248,.06);
+}
+.nav-link .dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--dim);flex-shrink:0;
+}
+.nav-link.active .dot{background:var(--blue);}
+
+/* ── MAIN CONTENT ── */
+main{overflow-y:auto;height:100vh;}
+
+/* ── HERO ── */
+.hero{
+  background:linear-gradient(135deg, #0f1520 0%, #0a1628 50%, #0f1520 100%);
+  border-bottom:1px solid var(--bdr);
+  padding:48px 48px 40px;
+  position:relative;
+  overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;
+  top:-60px;right:-60px;
+  width:300px;height:300px;
+  background:radial-gradient(circle, rgba(56,189,248,.06) 0%, transparent 70%);
+  border-radius:50%;
+}
+.hero-tag{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(56,189,248,.08);
+  border:1px solid rgba(56,189,248,.2);
+  border-radius:20px;padding:4px 12px;
+  font-family:var(--mono);font-size:10px;
+  color:var(--blue);letter-spacing:1px;
+  margin-bottom:16px;
+}
+.hero h1{
+  font-size:28px;font-weight:800;
+  color:var(--text);margin-bottom:10px;
+  line-height:1.2;
+}
+.hero h1 span{color:var(--blue);}
+.hero p{
+  font-size:13px;color:var(--text2);
+  max-width:580px;line-height:1.7;
+}
+.hero-chips{
+  display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;
+}
+.chip{
+  background:var(--bg3);border:1px solid var(--bdr);
+  border-radius:4px;padding:4px 10px;
+  font-family:var(--mono);font-size:10px;color:var(--text2);
+}
+
+/* ── SECTION ── */
+.section{
+  padding:40px 48px;
+  border-bottom:1px solid var(--bdr);
+}
+.section:last-child{border-bottom:none;}
+
+.s-tag{
+  font-family:var(--mono);font-size:9px;
+  letter-spacing:2px;color:var(--dim2);
+  text-transform:uppercase;margin-bottom:8px;
+  display:flex;align-items:center;gap:8px;
+}
+.s-tag::after{content:'';flex:1;max-width:40px;height:1px;background:var(--bdr);}
+
+h2{
+  font-size:20px;font-weight:700;
+  color:var(--text);margin-bottom:6px;
+}
+h3{
+  font-size:14px;font-weight:600;
+  color:var(--text);margin-bottom:8px;
+  display:flex;align-items:center;gap:8px;
+}
+.section>.desc{
+  font-size:12.5px;color:var(--text2);
+  margin-bottom:24px;max-width:680px;line-height:1.7;
+}
+
+/* ── TWO-MACHINE DIAGRAM ── */
+.machines{
+  display:grid;grid-template-columns:1fr auto 1fr;
+  gap:0;align-items:start;
+  margin:24px 0;
+}
+.machine{
+  background:var(--card);
+  border:1px solid var(--bdr);
+  border-radius:8px;
+  overflow:hidden;
+}
+.machine-head{
+  padding:12px 16px;
+  border-bottom:1px solid var(--bdr);
+  display:flex;align-items:center;gap:10px;
+}
+.machine-icon{font-size:20px;}
+.machine-name{
+  font-weight:700;font-size:13px;color:var(--text);
+}
+.machine-sub{font-size:11px;color:var(--text2);}
+.machine-badge{
+  margin-left:auto;font-family:var(--mono);font-size:9px;
+  padding:2px 8px;border-radius:3px;
+}
+.mb-laptop{background:rgba(56,189,248,.1);color:var(--blue);border:1px solid rgba(56,189,248,.25);}
+.mb-pi{background:rgba(52,211,153,.1);color:var(--green);border:1px solid rgba(52,211,153,.25);}
+
+.machine-body{padding:16px;}
+.m-path{
+  font-family:var(--mono);font-size:11px;
+  color:var(--blue);font-weight:500;
+  margin-bottom:10px;display:block;
+}
+.m-file{
+  display:flex;align-items:center;gap:8px;
+  padding:5px 0;
+  border-bottom:1px solid var(--bdr);
+  font-family:var(--mono);font-size:10.5px;
+}
+.m-file:last-child{border-bottom:none;}
+.m-file .ico{font-size:12px;flex-shrink:0;}
+.m-file .name{flex:1;color:var(--text2);}
+.m-file .tag{
+  font-size:8px;padding:1px 5px;border-radius:2px;
+  font-family:var(--mono);flex-shrink:0;
+}
+.t-edit{background:rgba(251,146,60,.1);color:var(--orange);border:1px solid rgba(251,146,60,.25);}
+.t-new{background:rgba(52,211,153,.1);color:var(--green);border:1px solid rgba(52,211,153,.25);}
+.t-auto{background:rgba(71,85,105,.2);color:var(--dim2);border:1px solid var(--bdr);}
+.t-run{background:rgba(167,139,250,.1);color:var(--purple);border:1px solid rgba(167,139,250,.25);}
+.t-src{background:rgba(56,189,248,.1);color:var(--blue);border:1px solid rgba(56,189,248,.25);}
+
+.m-indent{
+  padding-left:16px;border-left:1px solid var(--bdr);
+  margin-left:8px;
+}
+
+.conn-arrow{
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:0 16px;gap:8px;
+  min-width:80px;
+}
+.arr-line{
+  display:flex;flex-direction:column;
+  align-items:center;gap:4px;
+  font-family:var(--mono);font-size:9px;
+  color:var(--dim2);text-align:center;
+}
+.arr-icon{font-size:18px;color:var(--dim2);}
+
+/* ── FLOW DIAGRAM ── */
+.flow{
+  display:flex;align-items:center;gap:0;
+  margin:20px 0;overflow-x:auto;padding-bottom:4px;
+}
+.flow-box{
+  background:var(--card);border:1px solid var(--bdr);
+  border-radius:6px;padding:10px 14px;
+  text-align:center;white-space:nowrap;flex-shrink:0;
+}
+.flow-box .fb-ico{font-size:18px;display:block;margin-bottom:4px;}
+.flow-box .fb-name{
+  font-family:var(--mono);font-size:10px;
+  color:var(--text);font-weight:500;
+}
+.flow-box .fb-sub{
+  font-size:9px;color:var(--dim2);
+  font-family:var(--mono);margin-top:2px;
+}
+.flow-arr{
+  padding:0 6px;color:var(--dim2);
+  font-size:14px;flex-shrink:0;
+}
+.flow-box.hl{border-color:rgba(56,189,248,.35);background:rgba(56,189,248,.04);}
+.flow-box.hl .fb-name{color:var(--blue);}
+
+/* ── STEP CARDS ── */
+.steps{display:flex;flex-direction:column;gap:0;}
+.step{
+  display:flex;gap:0;
+  position:relative;
+}
+.step-left{
+  display:flex;flex-direction:column;
+  align-items:center;width:40px;flex-shrink:0;
+}
+.step-num{
+  width:28px;height:28px;border-radius:50%;
+  border:2px solid var(--blue);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:10px;
+  font-weight:600;color:var(--blue);
+  background:var(--bg2);flex-shrink:0;
+  z-index:1;
+}
+.step-num.warn{border-color:var(--red);color:var(--red);}
+.step-num.ok{border-color:var(--green);color:var(--green);}
+.step-line{
+  width:2px;background:var(--bdr);
+  flex:1;margin:4px 0;min-height:20px;
+}
+.step-body{
+  flex:1;padding:0 0 28px 16px;
+}
+.step-title{
+  font-size:13px;font-weight:600;
+  color:var(--text);margin-bottom:4px;
+  padding-top:4px;
+}
+.step-desc{
+  font-size:12px;color:var(--text2);
+  margin-bottom:10px;line-height:1.6;
+}
+
+/* ── CODE BLOCKS ── */
+.code{
+  background:#070c12;
+  border:1px solid var(--bdr);
+  border-radius:6px;
+  overflow:hidden;
+  margin-bottom:10px;
+}
+.code-bar{
+  background:var(--bg3);
+  border-bottom:1px solid var(--bdr);
+  padding:6px 12px;
+  display:flex;align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+.code-label{
+  font-family:var(--mono);font-size:9px;
+  color:var(--dim2);letter-spacing:1px;
+}
+.code-where{
+  font-family:var(--mono);font-size:9px;
+  color:var(--text2);
+}
+.copy-btn{
+  background:none;border:1px solid var(--bdr);
+  color:var(--dim2);font-family:var(--mono);
+  font-size:8px;padding:2px 8px;
+  border-radius:3px;cursor:pointer;
+  transition:all .15s;letter-spacing:.5px;
+  margin-left:auto;
+}
+.copy-btn:hover{color:var(--green);border-color:rgba(52,211,153,.4);}
+pre{
+  padding:14px 16px;
+  font-family:var(--mono);font-size:11.5px;
+  line-height:1.8;overflow-x:auto;
+  color:var(--text);
+}
+.p{color:var(--dim2);}
+.g{color:var(--green);}
+.b{color:var(--blue);}
+.o{color:var(--orange);}
+.pu{color:var(--purple);}
+.r{color:var(--red);}
+.y{color:var(--yellow);}
+.cm{color:var(--dim2);font-style:italic;}
+
+/* ── INFO / WARN BOXES ── */
+.info{
+  background:rgba(56,189,248,.05);
+  border:1px solid rgba(56,189,248,.2);
+  border-left:3px solid var(--blue);
+  border-radius:0 4px 4px 0;
+  padding:10px 14px;margin-bottom:12px;
+  font-size:12px;color:var(--text2);line-height:1.6;
+}
+.warn{
+  background:rgba(248,113,113,.05);
+  border:1px solid rgba(248,113,113,.2);
+  border-left:3px solid var(--red);
+  border-radius:0 4px 4px 0;
+  padding:10px 14px;margin-bottom:12px;
+  font-size:12px;color:var(--text2);line-height:1.6;
+}
+.ok-box{
+  background:rgba(52,211,153,.05);
+  border:1px solid rgba(52,211,153,.2);
+  border-left:3px solid var(--green);
+  border-radius:0 4px 4px 0;
+  padding:10px 14px;margin-bottom:12px;
+  font-size:12px;color:var(--text2);line-height:1.6;
+}
+
+/* ── TABLE ── */
+table{
+  width:100%;border-collapse:collapse;
+  font-size:12px;margin-bottom:14px;
+}
+th{
+  background:var(--bg3);
+  border:1px solid var(--bdr);
+  padding:8px 12px;
+  font-family:var(--mono);font-size:10px;
+  color:var(--text2);letter-spacing:.5px;
+  text-align:left;font-weight:500;
+}
+td{
+  border:1px solid var(--bdr);
+  padding:8px 12px;
+  font-family:var(--mono);font-size:11px;
+  color:var(--text2);vertical-align:top;
+}
+tr:nth-child(even) td{background:rgba(255,255,255,.01);}
+td:first-child{color:var(--text);}
+
+/* ── GRID CARDS ── */
+.card-grid{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:12px;margin-bottom:16px;
+}
+.ccard{
+  background:var(--card);border:1px solid var(--bdr);
+  border-radius:6px;padding:14px;
+}
+.ccard-title{
+  font-size:12px;font-weight:600;
+  color:var(--text);margin-bottom:6px;
+  display:flex;align-items:center;gap:6px;
+}
+.ccard-body{font-size:11.5px;color:var(--text2);line-height:1.6;}
+.ccard-body code{
+  background:var(--bg3);padding:1px 5px;
+  border-radius:3px;color:var(--orange);
+  font-family:var(--mono);font-size:10.5px;
+}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:20px;right:20px;
+  background:var(--card);border:1px solid var(--green);
+  color:var(--green);font-family:var(--mono);
+  font-size:11px;padding:8px 14px;border-radius:4px;
+  opacity:0;transform:translateY(6px);
+  transition:all .2s;pointer-events:none;z-index:999;
+}
+.toast.show{opacity:1;transform:translateY(0);}
+
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ── NAV ── -->
+<nav>
+  <div class="nav-logo">
+    <span class="mark">// GUIDE</span>
+    <span class="title">Drone Avoidance<br>Complete Setup</span>
+  </div>
+
+  <div class="nav-section">Overview</div>
+  <a class="nav-link active" onclick="scrollTo('overview')"><div class="dot"></div>Big Picture</a>
+  <a class="nav-link" onclick="scrollTo('files')"><div class="dot"></div>What Goes Where</a>
+
+  <div class="nav-section">Ubuntu Laptop</div>
+  <a class="nav-link" onclick="scrollTo('laptop-setup')"><div class="dot"></div>1. Create folders</a>
+  <a class="nav-link" onclick="scrollTo('laptop-files')"><div class="dot"></div>2. Put files in</a>
+  <a class="nav-link" onclick="scrollTo('laptop-deploy')"><div class="dot"></div>3. Deploy to Pi</a>
+
+  <div class="nav-section">Raspberry Pi</div>
+  <a class="nav-link" onclick="scrollTo('pi-install')"><div class="dot"></div>4. Install ROS2</a>
+  <a class="nav-link" onclick="scrollTo('pi-uart')"><div class="dot"></div>5. Enable UART</a>
+  <a class="nav-link" onclick="scrollTo('pi-build')"><div class="dot"></div>6. Build package</a>
+  <a class="nav-link" onclick="scrollTo('pi-source')"><div class="dot"></div>7. Source setup</a>
+  <a class="nav-link" onclick="scrollTo('pi-gui')"><div class="dot"></div>8. Serve GUI</a>
+
+  <div class="nav-section">Every Session</div>
+  <a class="nav-link" onclick="scrollTo('session')"><div class="dot"></div>9. Launch sequence</a>
+  <a class="nav-link" onclick="scrollTo('ardupilot')"><div class="dot"></div>ArduPilot params</a>
+  <a class="nav-link" onclick="scrollTo('cheatsheet')"><div class="dot"></div>Cheatsheet</a>
+</nav>
+
+<!-- ── MAIN ── -->
+<main>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-tag">🚁 From scratch · Complete guide</div>
+  <h1>Everything in one place.<br><span>No confusion.</span></h1>
+  <p>Ubuntu 22.04 laptop + Raspberry Pi 4 + Cube+ FC. Two machines, clear rules for what goes where, every command in order.</p>
+  <div class="hero-chips">
+    <div class="chip">ROS 2 Humble</div>
+    <div class="chip">ArduPilot GUIDED</div>
+    <div class="chip">MAVROS</div>
+    <div class="chip">PCL v5</div>
+    <div class="chip">GUI on Pi</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════ SECTION 1: BIG PICTURE ════════════════════════════ -->
+<div class="section" id="overview">
+  <div class="s-tag">Section 01</div>
+  <h2>The Big Picture</h2>
+  <p class="desc">Two machines. Simple rule: your <strong>laptop is where you write code</strong>. The <strong>Pi is where code runs</strong>. You copy files from laptop to Pi, build on Pi, run on Pi.</p>
+
+  <div class="machines">
+    <!-- LAPTOP -->
+    <div class="machine">
+      <div class="machine-head">
+        <div class="machine-icon">💻</div>
+        <div>
+          <div class="machine-name">Ubuntu Laptop</div>
+          <div class="machine-sub">Ubuntu 22.04 LTS</div>
+        </div>
+        <div class="machine-badge mb-laptop">SOURCE</div>
+      </div>
+      <div class="machine-body">
+        <span class="m-path">~/drone_project/</span>
+        <div class="m-file"><span class="ico">📁</span><span class="name">ros2_pkg/</span><span class="tag t-src">source</span></div>
+        <div class="m-indent">
+          <div class="m-file"><span class="ico">📄</span><span class="name">package.xml</span><span class="tag t-edit">edit here</span></div>
+          <div class="m-file"><span class="ico">📄</span><span class="name">CMakeLists.txt</span><span class="tag t-edit">edit here</span></div>
+          <div class="m-file"><span class="ico">📄</span><span class="name">src/side_obstacle_avoidance_v5.cpp</span><span class="tag t-edit">edit here</span></div>
+          <div class="m-file"><span class="ico">📄</span><span class="name">src/fake_depth_node.cpp</span><span class="tag t-edit">edit here</span></div>
+          <div class="m-file"><span class="ico">📄</span><span class="name">launch/mavros_cube.launch.py</span><span class="tag t-edit">edit here</span></div>
+          <div class="m-file"><span class="ico">📄</span><span class="name">launch/bench_test.launch.py</span><span class="tag t-edit">edit here</span></div>
+          <div class="m-file"><span class="ico">📄</span><span class="name">launch/full_mission.launch.py</span><span class="tag t-edit">edit here</span></div>
+          <div class="m-file"><span class="ico">📄</span><span class="name">config/mavros_params.yaml</span><span class="tag t-edit">edit here</span></div>
+        </div>
+        <div class="m-file" style="margin-top:8px;"><span class="ico">📁</span><span class="name">gui/</span><span class="tag t-src">source</span></div>
+        <div class="m-indent">
+          <div class="m-file"><span class="ico">🌐</span><span class="name">drone_gui.html</span><span class="tag t-edit">edit here</span></div>
+        </div>
+        <div class="m-file" style="margin-top:8px;"><span class="ico">📄</span><span class="name">deploy.sh</span><span class="tag t-run">run to deploy</span></div>
+      </div>
+    </div>
+
+    <!-- ARROW -->
+    <div class="conn-arrow">
+      <div class="arr-line">
+        <div class="arr-icon">→</div>
+        <div>scp</div>
+        <div style="margin-top:4px;font-size:8px;color:var(--dim)">WiFi/SSH</div>
+      </div>
+      <div class="arr-line" style="margin-top:16px;">
+        <div class="arr-icon">←</div>
+        <div>logs</div>
+      </div>
+    </div>
+
+    <!-- PI -->
+    <div class="machine">
+      <div class="machine-head">
+        <div class="machine-icon">🥧</div>
+        <div>
+          <div class="machine-name">Raspberry Pi 4</div>
+          <div class="machine-sub">Ubuntu 22.04 LTS · on drone</div>
+        </div>
+        <div class="machine-badge mb-pi">RUNS CODE</div>
+      </div>
+      <div class="machine-body">
+        <span class="m-path">~/ros2_ws/src/drone_avoidance/</span>
+        <div class="m-file"><span class="ico">📄</span><span class="name">package.xml</span><span class="tag t-new">copied from laptop</span></div>
+        <div class="m-file"><span class="ico">📄</span><span class="name">CMakeLists.txt</span><span class="tag t-new">copied from laptop</span></div>
+        <div class="m-file"><span class="ico">📁</span><span class="name">src/ launch/ config/</span><span class="tag t-new">copied from laptop</span></div>
+        <div class="m-file" style="margin-top:8px;border-top:1px solid var(--bdr);padding-top:8px;">
+          <span class="ico">📁</span><span class="name">~/ros2_ws/build/</span><span class="tag t-auto">colcon makes this</span>
+        </div>
+        <div class="m-file"><span class="ico">📁</span><span class="name">~/ros2_ws/install/</span><span class="tag t-auto">colcon makes this</span></div>
+        <div class="m-file" style="margin-top:8px;border-top:1px solid var(--bdr);padding-top:8px;">
+          <span class="ico">📁</span><span class="name">~/drone_gui/</span><span class="tag t-run">served on :8080</span>
+        </div>
+        <div class="m-indent">
+          <div class="m-file"><span class="ico">🌐</span><span class="name">drone_gui.html</span><span class="tag t-run">open in browser</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOPIC FLOW -->
+  <h3 style="margin-top:24px;">How nodes connect at runtime</h3>
+  <div class="flow">
+    <div class="flow-box"><span class="fb-ico">🎭</span><div class="fb-name">fake_depth_node</div><div class="fb-sub">OR realsense_camera</div></div>
+    <div class="flow-arr">→</div>
+    <div class="flow-box hl"><span class="fb-ico">📡</span><div class="fb-name">/realsense/depth_image</div><div class="fb-sub">topic</div></div>
+    <div class="flow-arr">→</div>
+    <div class="flow-box"><span class="fb-ico">🛡️</span><div class="fb-name">side_obstacle_avoidance</div><div class="fb-sub">main node</div></div>
+    <div class="flow-arr">→</div>
+    <div class="flow-box hl"><span class="fb-ico">📡</span><div class="fb-name">/mavros/setpoint_velocity</div><div class="fb-sub">topic</div></div>
+    <div class="flow-arr">→</div>
+    <div class="flow-box"><span class="fb-ico">📡</span><div class="fb-name">mavros_node</div><div class="fb-sub">UART bridge</div></div>
+    <div class="flow-arr">→</div>
+    <div class="flow-box"><span class="fb-ico">🟠</span><div class="fb-name">Cube+ FC</div><div class="fb-sub">ArduPilot</div></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════ SECTION 2: FILES MAP ════════════════════════════ -->
+<div class="section" id="files">
+  <div class="s-tag">Section 02</div>
+  <h2>What Goes Where — Complete File Map</h2>
+  <p class="desc">Every single file, its exact path on each machine, and what it does. Read this once and you'll never be confused again.</p>
+
+  <table>
+    <tr><th>File</th><th>Laptop path</th><th>Pi path</th><th>Purpose</th></tr>
+    <tr>
+      <td>package.xml</td>
+      <td style="color:var(--orange)">~/drone_project/ros2_pkg/</td>
+      <td style="color:var(--green)">~/ros2_ws/src/drone_avoidance/</td>
+      <td>Declares ROS2 dependencies</td>
+    </tr>
+    <tr>
+      <td>CMakeLists.txt</td>
+      <td style="color:var(--orange)">~/drone_project/ros2_pkg/</td>
+      <td style="color:var(--green)">~/ros2_ws/src/drone_avoidance/</td>
+      <td>Build instructions for colcon</td>
+    </tr>
+    <tr>
+      <td>side_obstacle_avoidance_v5.cpp</td>
+      <td style="color:var(--orange)">~/drone_project/ros2_pkg/src/</td>
+      <td style="color:var(--green)">~/ros2_ws/src/drone_avoidance/src/</td>
+      <td>Main avoidance node C++ source</td>
+    </tr>
+    <tr>
+      <td>fake_depth_node.cpp</td>
+      <td style="color:var(--orange)">~/drone_project/ros2_pkg/src/</td>
+      <td style="color:var(--green)">~/ros2_ws/src/drone_avoidance/src/</td>
+      <td>Bench test depth injector</td>
+    </tr>
+    <tr>
+      <td>mavros_cube.launch.py</td>
+      <td style="color:var(--orange)">~/drone_project/ros2_pkg/launch/</td>
+      <td style="color:var(--green)">~/ros2_ws/src/drone_avoidance/launch/</td>
+      <td>Starts MAVROS → Cube+ UART</td>
+    </tr>
+    <tr>
+      <td>bench_test.launch.py</td>
+      <td style="color:var(--orange)">~/drone_project/ros2_pkg/launch/</td>
+      <td style="color:var(--green)">~/ros2_ws/src/drone_avoidance/launch/</td>
+      <td>Starts fake_depth + avoidance</td>
+    </tr>
+    <tr>
+      <td>full_mission.launch.py</td>
+      <td style="color:var(--orange)">~/drone_project/ros2_pkg/launch/</td>
+      <td style="color:var(--green)">~/ros2_ws/src/drone_avoidance/launch/</td>
+      <td>Starts D435 + avoidance (real flight)</td>
+    </tr>
+    <tr>
+      <td>mavros_params.yaml</td>
+      <td style="color:var(--orange)">~/drone_project/ros2_pkg/config/</td>
+      <td style="color:var(--green)">~/ros2_ws/src/drone_avoidance/config/</td>
+      <td>MAVROS plugin config</td>
+    </tr>
+    <tr>
+      <td>drone_gui.html</td>
+      <td style="color:var(--orange)">~/drone_project/gui/</td>
+      <td style="color:var(--green)">~/drone_gui/</td>
+      <td>Control panel, served on :8080</td>
+    </tr>
+    <tr>
+      <td>deploy.sh</td>
+      <td style="color:var(--orange)">~/drone_project/</td>
+      <td style="color:var(--dim2)">— not needed on Pi —</td>
+      <td>One-command deploy script</td>
+    </tr>
+  </table>
+
+  <div class="warn"><strong>Never edit files directly on the Pi.</strong> Always edit on the laptop, then run deploy.sh. This keeps laptop as your single source of truth.</div>
+  <div class="info"><strong>Never touch build/ or install/ folders.</strong> colcon creates and manages these automatically. Deleting and recreating them is fine — run <code style="color:var(--orange);font-family:var(--mono)">colcon build</code> again and they come back.</div>
+</div>
+
+<!-- ════════════════════════════ LAPTOP SECTION ════════════════════════════ -->
+<div class="section" id="laptop-setup">
+  <div class="s-tag">Ubuntu Laptop · Step 1</div>
+  <h2>Create Folders on Laptop</h2>
+  <p class="desc">Run this once in your laptop terminal. Creates the entire project structure in one command.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-left"><div class="step-num">1</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Open terminal and create the full folder tree</div>
+        <div class="step-desc">One command creates everything.</div>
+        <div class="code">
+          <div class="code-bar">
+            <span class="code-label">BASH</span>
+            <span class="code-where">💻 Laptop terminal</span>
+            <button class="copy-btn" onclick="cp(this)">COPY</button>
+          </div>
+          <pre>mkdir -p ~/drone_project/{ros2_pkg/{src,launch,config},gui}</pre>
+        </div>
+        <div class="ok-box">This creates: <code style="font-family:var(--mono);color:var(--green)">~/drone_project/ros2_pkg/src/</code> &nbsp; <code style="font-family:var(--mono);color:var(--green)">~/drone_project/ros2_pkg/launch/</code> &nbsp; <code style="font-family:var(--mono);color:var(--green)">~/drone_project/ros2_pkg/config/</code> &nbsp; <code style="font-family:var(--mono);color:var(--green)">~/drone_project/gui/</code></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-left"><div class="step-num">2</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Verify the structure looks right</div>
+        <div class="code">
+          <div class="code-bar"><span class="code-label">BASH</span><span class="code-where">💻 Laptop terminal</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+          <pre>find ~/drone_project -type d</pre>
+        </div>
+        <div class="info">You should see 5 directories: drone_project, ros2_pkg, src, launch, config, gui.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LAPTOP FILES -->
+<div class="section" id="laptop-files">
+  <div class="s-tag">Ubuntu Laptop · Step 2</div>
+  <h2>Put Your Files Into the Folders</h2>
+  <p class="desc">Copy each file from this conversation into the right location on your laptop. Use any text editor — VS Code, gedit, nano. The laptop path is shown for each file.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-left"><div class="step-num">1</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Open VS Code in the project folder</div>
+        <div class="code">
+          <div class="code-bar"><span class="code-label">BASH</span><span class="code-where">💻 Laptop terminal</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+          <pre>code ~/drone_project</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-left"><div class="step-num">2</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Create each file and paste content from this conversation</div>
+        <table>
+          <tr><th>Create this file at this path on laptop</th><th>Content from</th></tr>
+          <tr><td>~/drone_project/ros2_pkg/package.xml</td><td>FILES tab in GUI → package.xml section</td></tr>
+          <tr><td>~/drone_project/ros2_pkg/CMakeLists.txt</td><td>FILES tab in GUI → CMakeLists.txt section</td></tr>
+          <tr><td>~/drone_project/ros2_pkg/src/side_obstacle_avoidance_v5.cpp</td><td>side_obstacle_avoidance_v5.cpp from this chat</td></tr>
+          <tr><td>~/drone_project/ros2_pkg/src/fake_depth_node.cpp</td><td>fake_depth_node.cpp from this chat</td></tr>
+          <tr><td>~/drone_project/ros2_pkg/launch/mavros_cube.launch.py</td><td>FILES tab in GUI → mavros_cube.launch.py</td></tr>
+          <tr><td>~/drone_project/ros2_pkg/launch/bench_test.launch.py</td><td>FILES tab in GUI → bench_test.launch.py</td></tr>
+          <tr><td>~/drone_project/gui/drone_gui.html</td><td>drone_gui.html from this chat</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-left"><div class="step-num">3</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Create the deploy script — saves you time every session</div>
+        <div class="step-desc">Create this file at <strong>~/drone_project/deploy.sh</strong> and paste this content:</div>
+        <div class="code">
+          <div class="code-bar"><span class="code-label">BASH · deploy.sh</span><span class="code-where">📄 ~/drone_project/deploy.sh</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+          <pre><span class="pu">#!/bin/bash</span>
+<span class="cm"># Run this from laptop whenever you change any file</span>
+<span class="cm"># Usage: ./deploy.sh</span>
+
+PI=<span class="y">"pi@10.42.0.1"</span>
+PROJECT=<span class="y">"$HOME/drone_project"</span>
+
+echo <span class="y">"📦 Copying files to Pi..."</span>
+
+<span class="cm"># Copy ROS2 package files</span>
+scp -r <span class="y">"$PROJECT/ros2_pkg/."</span> <span class="y">"$PI:~/ros2_ws/src/drone_avoidance/"</span>
+
+<span class="cm"># Copy GUI</span>
+scp <span class="y">"$PROJECT/gui/drone_gui.html"</span> <span class="y">"$PI:~/drone_gui/"</span>
+
+<span class="cm"># Build on Pi</span>
+echo <span class="y">"⚙️  Building on Pi (takes ~3 min first time)..."</span>
+ssh <span class="y">"$PI"</span> <span class="y">"source /opt/ros/humble/setup.bash && \
+  cd ~/ros2_ws && \
+  colcon build --symlink-install --packages-select drone_avoidance && \
+  source install/setup.bash && \
+  echo '✅ Build complete'"</span>
+
+echo <span class="y">"🌐 GUI at: http://10.42.0.1:8080/drone_gui.html"</span></pre>
+        </div>
+        <div class="code">
+          <div class="code-bar"><span class="code-label">BASH</span><span class="code-where">💻 Laptop terminal</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+          <pre><span class="cm"># Make it executable — run once</span>
+chmod +x ~/drone_project/deploy.sh</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LAPTOP DEPLOY -->
+<div class="section" id="laptop-deploy">
+  <div class="s-tag">Ubuntu Laptop · Step 3</div>
+  <h2>Connect to Pi and Deploy</h2>
+  <p class="desc">Set up SSH access from laptop to Pi. Do this once, then use deploy.sh every time you change a file.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-left"><div class="step-num">1</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Connect laptop to Pi's WiFi hotspot</div>
+        <div class="step-desc">Pi creates a hotspot called <strong>DroneNet</strong>. Connect to it from Ubuntu's WiFi menu. Pi's IP is always <strong>10.42.0.1</strong>.</div>
+        <div class="code">
+          <div class="code-bar"><span class="code-label">BASH</span><span class="code-where">💻 Laptop terminal</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+          <pre><span class="cm"># Test connection</span>
+ping -c 3 10.42.0.1</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-left"><div class="step-num">2</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Set up passwordless SSH (do once)</div>
+        <div class="step-desc">So deploy.sh doesn't ask for password every time.</div>
+        <div class="code">
+          <div class="code-bar"><span class="code-label">BASH</span><span class="code-where">💻 Laptop terminal</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+          <pre><span class="cm"># Generate SSH key if you don't have one</span>
+ssh-keygen -t ed25519 -C <span class="y">"drone_laptop"</span>
+<span class="cm"># Press Enter 3 times (accept defaults, no passphrase)</span>
+
+<span class="cm"># Copy key to Pi</span>
+ssh-copy-id pi@10.42.0.1
+<span class="cm"># Enter Pi password once — never again after this</span></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-left"><div class="step-num">3</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Run deploy.sh — pushes everything to Pi and builds</div>
+        <div class="code">
+          <div class="code-bar"><span class="code-label">BASH</span><span class="code-where">💻 Laptop terminal</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+          <pre>cd ~/drone_project && ./deploy.sh</pre>
+        </div>
+        <div class="ok-box">After this you're done on the laptop. Everything is now on the Pi.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════ PI SECTIONS ════════════════════════════ -->
+<div class="section" id="pi-install">
+  <div class="s-tag">Raspberry Pi · Step 4</div>
+  <h2>Install ROS 2 + All Dependencies on Pi</h2>
+  <p class="desc">SSH into the Pi and run these once. Takes about 15–20 minutes. Do this before running deploy.sh for the first time.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-left"><div class="step-num">1</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">SSH into Pi from laptop</div>
+        <div class="code">
+          <div class="code-bar"><span class="code-label">BASH</span><span class="code-where">💻 Laptop terminal</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+          <pre>ssh pi@10.42.0.1</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-left"><div class="step-num">2</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Add ROS 2 apt repository</div>
+        <div class="code">
+          <div class="code-bar"><span class="code-label">BASH</span><span class="code-where">🥧 Pi terminal</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+          <pre>sudo apt update && sudo apt install -y software-properties-common curl
+sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key \
+  -o /usr/share/keyrings/ros-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) \
+  signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] \
+  https://packages.ros.org/ros2/ubuntu jammy main" \
+  | sudo tee /etc/apt/sources.list.d/ros2.list
+sudo apt update</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-left"><div class="step-num">3</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Install ROS 2 Humble + MAVROS + PCL + OpenCV</div>
+        <div class="code">
+          <div class="code-bar"><span class="code-label">BASH</span><span class="code-where">🥧 Pi terminal</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+          <pre>sudo apt install -y \
+  ros-humble-desktop \
+  ros-humble-mavros \
+  ros-humble-mavros-extras \
+  ros-humble-pcl-ros \
+  ros-humble-pcl-conversions \
+  ros-humble-cv-bridge \
+  libpcl-dev \
+  python3-colcon-common-extensions
+
+<span class="cm"># Required geographic data for MAVROS</span>
+ros2 run mavros install_geographiclib_datasets.sh</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-left"><div class="step-num">4</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Create workspace and package skeleton on Pi</div>
+        <div class="code">
+          <div class="code-bar"><span class="code-label">BASH</span><span class="code-where">🥧 Pi terminal</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+          <pre>mkdir -p ~/ros2_ws/src
+cd ~/ros2_ws/src
+ros2 pkg create drone_avoidance --build-type ament_cmake
+mkdir -p drone_avoidance/launch drone_avoidance/config
+mkdir -p ~/drone_gui</pre>
+        </div>
+        <div class="info">This creates the package folder structure. deploy.sh will fill it with your actual files.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-left"><div class="step-num">5</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Create Pi WiFi hotspot</div>
+        <div class="step-desc">So you can always connect to the Pi in the field without a router.</div>
+        <div class="code">
+          <div class="code-bar"><span class="code-label">BASH</span><span class="code-where">🥧 Pi terminal</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+          <pre>sudo nmcli device wifi hotspot \
+  ssid DroneNet \
+  password drone1234 \
+  ifname wlan0
+
+<span class="cm"># Make it start on boot</span>
+sudo nmcli connection modify DroneNet connection.autoconnect yes</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PI UART -->
+<div class="section" id="pi-uart">
+  <div class="s-tag">Raspberry Pi · Step 5</div>
+  <h2>Enable UART for Cube+ Connection</h2>
+  <p class="desc">The Pi talks to the Cube+ over its hardware UART pins. This enables that port and disables the default login shell that's using it.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-left"><div class="step-num">1</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Run raspi-config</div>
+        <div class="code">
+          <div class="code-bar"><span class="code-label">BASH</span><span class="code-where">🥧 Pi terminal</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+          <pre>sudo raspi-config</pre>
+        </div>
+        <div class="info">
+          Navigate: <strong>Interface Options</strong> → <strong>Serial Port</strong><br>
+          "Would you like a login shell to be accessible over serial?" → <strong>No</strong><br>
+          "Would you like the serial port hardware to be enabled?" → <strong>Yes</strong><br>
+          Finish → Reboot
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-left"><div class="step-num">2</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">After reboot — verify UART exists</div>
+        <div class="code">
+          <div class="code-bar"><span class="code-label">BASH</span><span class="code-where">🥧 Pi terminal</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+          <pre>ls /dev/serial0
+<span class="cm"># Must print: /dev/serial0</span>
+<span class="cm"># If it says "No such file" — redo raspi-config step</span></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-left"><div class="step-num">3</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Wire Cube+ TELEM2 to Pi GPIO</div>
+        <table>
+          <tr><th>Cube+ TELEM2 pin</th><th>Signal</th><th>Pi GPIO pin</th><th>Pi physical pin</th></tr>
+          <tr><td>Pin 2</td><td>VCC 5V</td><td>5V</td><td>Physical pin 4</td></tr>
+          <tr><td>Pin 3</td><td>GND</td><td>GND</td><td>Physical pin 6</td></tr>
+          <tr><td>Pin 4</td><td>TX</td><td>GPIO15 (RXD)</td><td>Physical pin 10</td></tr>
+          <tr><td>Pin 5</td><td>RX</td><td>GPIO14 (TXD)</td><td>Physical pin 8</td></tr>
+        </table>
+        <div class="warn"><strong>TX goes to RX and RX goes to TX</strong> — they cross over. This is correct and intentional.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PI BUILD -->
+<div class="section" id="pi-build">
+  <div class="s-tag">Raspberry Pi · Step 6</div>
+  <h2>Build the ROS 2 Package on Pi</h2>
+  <p class="desc">Building happens on the Pi, never on the laptop. You always build after deploy.sh copies the files. The deploy.sh script does this automatically, but here's how to do it manually.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-left"><div class="step-num">1</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Speed up build — use all 4 Pi cores</div>
+        <div class="step-desc">Create colcon.meta once at the workspace root. Reduces build time from 12 min → 3 min.</div>
+        <div class="code">
+          <div class="code-bar"><span class="code-label">BASH</span><span class="code-where">🥧 Pi terminal</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+          <pre>cd ~/ros2_ws
+cat > colcon.meta << 'EOF'
+{"names":{"colcon-core":{"args":["--parallel-workers","4"]}}}
+EOF</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-left"><div class="step-num">2</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Build the package</div>
+        <div class="step-desc">Run from ~/ros2_ws. Run this every time deploy.sh copies new .cpp files.</div>
+        <div class="code">
+          <div class="code-bar"><span class="code-label">BASH</span><span class="code-where">🥧 Pi terminal — ~/ros2_ws</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+          <pre>cd ~/ros2_ws
+colcon build --symlink-install --packages-select drone_avoidance</pre>
+        </div>
+        <div class="info">
+          <strong>--symlink-install</strong> means launch files (.py) and config (.yaml) are symlinked — change them and just re-launch, no rebuild needed.<br>
+          <strong>--packages-select drone_avoidance</strong> only builds your package, skips everything else.
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-left"><div class="step-num">3</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Verify build succeeded</div>
+        <div class="code">
+          <div class="code-bar"><span class="code-label">BASH</span><span class="code-where">🥧 Pi terminal</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+          <pre>ros2 pkg executables drone_avoidance
+<span class="cm"># Must show:
+# drone_avoidance fake_depth_node
+# drone_avoidance side_obstacle_avoidance</span></pre>
+        </div>
+        <div class="warn">If it shows nothing or errors — the build failed. Scroll up in the build output to find the C++ error. Fix the .cpp file on the laptop, run deploy.sh again, rebuild.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PI SOURCE -->
+<div class="section" id="pi-source">
+  <div class="s-tag">Raspberry Pi · Step 7</div>
+  <h2>Sourcing — The Most Important Thing</h2>
+  <p class="desc">This is where most beginners get confused. You need to "source" two files in every terminal before using ROS 2. Think of it like activating ROS 2 for that terminal session.</p>
+
+  <div class="card-grid">
+    <div class="ccard">
+      <div class="ccard-title" style="color:var(--blue)">📦 What sourcing does</div>
+      <div class="ccard-body">It adds ROS 2 commands and your package's executables to the terminal's PATH. Without sourcing, <code>ros2 launch drone_avoidance ...</code> says "package not found".</div>
+    </div>
+    <div class="ccard">
+      <div class="ccard-title" style="color:var(--orange)">⚠ Must source EVERY terminal</div>
+      <div class="ccard-body">Each new SSH session or terminal tab is a fresh shell — sourcing from one terminal does NOT carry over to another. Open new tab → source again.</div>
+    </div>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-left"><div class="step-num">!</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Make sourcing automatic — add to ~/.bashrc</div>
+        <div class="step-desc">Do this once on the Pi. After this, every new terminal automatically sources both files.</div>
+        <div class="code">
+          <div class="code-bar"><span class="code-label">BASH</span><span class="code-where">🥧 Pi terminal</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+          <pre><span class="cm"># Add these 4 lines to ~/.bashrc</span>
+echo <span class="y">'source /opt/ros/humble/setup.bash'</span> >> ~/.bashrc
+echo <span class="y">'source ~/ros2_ws/install/setup.bash'</span> >> ~/.bashrc
+echo <span class="y">'export ROS_DOMAIN_ID=42'</span> >> ~/.bashrc
+echo <span class="y">'export ROS_LOCALHOST_ONLY=0'</span> >> ~/.bashrc
+
+<span class="cm"># Apply immediately to current terminal</span>
+source ~/.bashrc</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-left"><div class="step-num">!</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Do the same on your Ubuntu laptop</div>
+        <div class="step-desc">So your laptop can see Pi's ROS 2 topics over the network.</div>
+        <div class="code">
+          <div class="code-bar"><span class="code-label">BASH</span><span class="code-where">💻 Laptop terminal</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+          <pre>echo <span class="y">'source /opt/ros/humble/setup.bash'</span> >> ~/.bashrc
+echo <span class="y">'export ROS_DOMAIN_ID=42'</span> >> ~/.bashrc
+echo <span class="y">'export ROS_LOCALHOST_ONLY=0'</span> >> ~/.bashrc
+source ~/.bashrc</pre>
+        </div>
+        <div class="info">Both Pi and laptop must have <strong>the same ROS_DOMAIN_ID=42</strong>. This is how they find each other's topics across the WiFi network.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-left"><div class="step-num">!</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">What the two source lines mean</div>
+        <table>
+          <tr><th>Command</th><th>What it sources</th><th>When needed</th></tr>
+          <tr>
+            <td style="font-family:var(--mono);font-size:10px;">source /opt/ros/humble/setup.bash</td>
+            <td>ROS 2 Humble core — ros2 command, all standard packages</td>
+            <td>Every terminal, always first</td>
+          </tr>
+          <tr>
+            <td style="font-family:var(--mono);font-size:10px;">source ~/ros2_ws/install/setup.bash</td>
+            <td>Your drone_avoidance package — ros2 run/launch drone_avoidance ...</td>
+            <td>After every colcon build</td>
+          </tr>
+        </table>
+        <div class="warn">The second source only works after you've run <code style="font-family:var(--mono);color:var(--orange)">colcon build</code> at least once. If install/ doesn't exist yet, it will error — that's normal, just build first.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PI GUI -->
+<div class="section" id="pi-gui">
+  <div class="s-tag">Raspberry Pi · Step 8</div>
+  <h2>Serve the GUI — Auto-start on Boot</h2>
+  <p class="desc">Set up the Pi to serve drone_gui.html on port 8080 automatically every time it powers on. Access it from any device on the DroneNet hotspot.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-left"><div class="step-num">1</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Create a systemd service (runs on boot, forever)</div>
+        <div class="code">
+          <div class="code-bar"><span class="code-label">BASH</span><span class="code-where">🥧 Pi terminal</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+          <pre>sudo tee /etc/systemd/system/drone-gui.service > /dev/null << <span class="y">'EOF'</span>
+[Unit]
+Description=Drone Control GUI Server
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/drone_gui
+ExecStart=python3 -m http.server 8080
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+<span class="y">EOF</span></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-left"><div class="step-num">2</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Enable and start it</div>
+        <div class="code">
+          <div class="code-bar"><span class="code-label">BASH</span><span class="code-where">🥧 Pi terminal</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+          <pre>sudo systemctl daemon-reload
+sudo systemctl enable drone-gui
+sudo systemctl start drone-gui
+
+<span class="cm"># Check it's running</span>
+sudo systemctl status drone-gui
+<span class="cm"># Should show: Active: active (running)</span></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-left"><div class="step-num">3</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Open the GUI</div>
+        <div class="step-desc">From any device connected to DroneNet hotspot — laptop, phone, tablet:</div>
+        <div class="ok-box" style="font-family:var(--mono);font-size:14px;text-align:center;padding:16px;">
+          http://10.42.0.1:8080/drone_gui.html
+        </div>
+        <div class="info">The GUI is now permanently available whenever the Pi is powered on and you're connected to DroneNet. No SSH needed to open it.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════ SESSION ════════════════════════════ -->
+<div class="section" id="session">
+  <div class="s-tag">Every Session</div>
+  <h2>Exact Launch Sequence — Every Bench Test</h2>
+  <p class="desc">Follow this exact order every time. Open 3 separate SSH terminals on the Pi (or 3 tabs in the same SSH session).</p>
+
+  <div class="warn">Remove propellers before every bench test. Motors arm immediately when avoidance node starts.</div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-left"><div class="step-num ok">0</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Open the GUI in your browser first</div>
+        <div class="code">
+          <div class="code-bar"><span class="code-label">BROWSER</span><span class="code-where">💻 Laptop or phone</span></div>
+          <pre>http://10.42.0.1:8080/drone_gui.html</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-left"><div class="step-num">1</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">SSH Terminal 1 — Start MAVROS</div>
+        <div class="step-desc">Always first. Wait until you see <strong>"FCU connected"</strong> in the output before opening terminal 2.</div>
+        <div class="code">
+          <div class="code-bar"><span class="code-label">BASH</span><span class="code-where">🥧 Pi — SSH terminal 1</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+          <pre>ros2 launch drone_avoidance mavros_cube.launch.py
+<span class="cm"># Wait for: [ INFO] FCU: APM: ArduCopter ... connected</span></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-left"><div class="step-num">2</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">SSH Terminal 2 — Start bench test (fake depth + avoidance)</div>
+        <div class="step-desc">This is the "press Enter" moment. Starts both fake_depth_node and side_obstacle_avoidance together.</div>
+        <div class="code">
+          <div class="code-bar"><span class="code-label">BASH</span><span class="code-where">🥧 Pi — SSH terminal 2</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+          <pre>ros2 launch drone_avoidance bench_test.launch.py
+<span class="cm"># Watch: WARMUP → GUIDED → ARMING → TAKEOFF → MISSION → CRUISING</span></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-left"><div class="step-num">3</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">SSH Terminal 3 — Inject obstacles (or use GUI)</div>
+        <div class="code">
+          <div class="code-bar"><span class="code-label">BASH</span><span class="code-where">🥧 Pi — SSH terminal 3</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+          <pre><span class="cm"># Front obstacle — triggers LATERAL_SHIFT</span>
+ros2 param set /fake_depth_node front_dist 2.5
+
+<span class="cm"># Left wall 10 seconds — tests WALL_FOLLOWING</span>
+ros2 param set /fake_depth_node left_dist 3.0
+ros2 param set /fake_depth_node left_duration 10.0
+
+<span class="cm"># Slanted right wall — tests slant detection</span>
+ros2 param set /fake_depth_node right_dist 2.0
+ros2 param set /fake_depth_node right_slant true
+
+<span class="cm"># Clear all</span>
+ros2 param set /fake_depth_node front_dist -1.0
+ros2 param set /fake_depth_node left_dist  -1.0
+ros2 param set /fake_depth_node right_dist -1.0</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-left"><div class="step-num ok">4</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Monitor from laptop (optional)</div>
+        <div class="code">
+          <div class="code-bar"><span class="code-label">BASH</span><span class="code-where">💻 Laptop terminal</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+          <pre><span class="cm"># Watch Cube+ connection state</span>
+ros2 topic echo /mavros/state
+
+<span class="cm"># Watch velocity commands being sent</span>
+ros2 topic echo /mavros/setpoint_velocity/cmd_vel_unstamped
+
+<span class="cm"># See all running nodes</span>
+ros2 node list</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-left"><div class="step-num warn">!</div></div>
+      <div class="step-body">
+        <div class="step-title" style="color:var(--red)">Emergency stop</div>
+        <div class="code">
+          <div class="code-bar"><span class="code-label">BASH</span><span class="code-where">🥧 Pi — any terminal</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+          <pre>ros2 service call /mavros/cmd/arming \
+  mavros_msgs/srv/CommandBool "{value: false}"</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════ ARDUPILOT ════════════════════════════ -->
+<div class="section" id="ardupilot">
+  <div class="s-tag">One-time · Mission Planner</div>
+  <h2>ArduPilot Parameters</h2>
+  <p class="desc">Set these once in Mission Planner via your SiK radio. Connect as normal → Config → Full Parameter List → search each param → set → Write Params.</p>
+
+  <table>
+    <tr><th>Parameter</th><th>Value</th><th>Why</th></tr>
+    <tr><td>SERIAL2_PROTOCOL</td><td>2</td><td>MAVLink 2 on TELEM2 (Pi UART port)</td></tr>
+    <tr><td>SERIAL2_BAUD</td><td>921</td><td>921600 baud — matches mavros_cube.launch.py</td></tr>
+    <tr><td>SERIAL1_PROTOCOL</td><td>2</td><td>MAVLink on TELEM1 (your SiK radio, unchanged)</td></tr>
+    <tr><td>SERIAL1_BAUD</td><td>57</td><td>57600 baud — standard SiK radio speed</td></tr>
+    <tr><td>GUID_OPTIONS</td><td>0</td><td>Allow velocity commands in GUIDED mode</td></tr>
+    <tr><td>FS_THR_ENABLE</td><td>1</td><td>Throttle failsafe — safety net</td></tr>
+    <tr><td>DISARM_DELAY</td><td>0</td><td>Don't auto-disarm during bench test</td></tr>
+  </table>
+
+  <div class="info">SERIAL1 (SiK radio) and SERIAL2 (Pi UART) run simultaneously and independently. Your Mission Planner telemetry is unaffected.</div>
+</div>
+
+<!-- ════════════════════════════ CHEATSHEET ════════════════════════════ -->
+<div class="section" id="cheatsheet">
+  <div class="s-tag">Quick Reference</div>
+  <h2>Cheatsheet — Everything You Need Daily</h2>
+
+  <h3 style="margin-bottom:8px;margin-top:4px;">When you change a .cpp file</h3>
+  <div class="code">
+    <div class="code-bar"><span class="code-label">LAPTOP → PI</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+    <pre><span class="cm"># On laptop — deploy and auto-rebuild</span>
+cd ~/drone_project && ./deploy.sh</pre>
+  </div>
+
+  <h3 style="margin-bottom:8px;">When you change only a launch file or yaml</h3>
+  <div class="code">
+    <div class="code-bar"><span class="code-label">LAPTOP → PI</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+    <pre><span class="cm"># On laptop — copy only, no rebuild needed (symlink-install)</span>
+scp ~/drone_project/ros2_pkg/launch/bench_test.launch.py \
+  pi@10.42.0.1:~/ros2_ws/src/drone_avoidance/launch/</pre>
+  </div>
+
+  <h3 style="margin-bottom:8px;">Rebuild manually on Pi</h3>
+  <div class="code">
+    <div class="code-bar"><span class="code-label">PI</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+    <pre>cd ~/ros2_ws && colcon build --symlink-install --packages-select drone_avoidance</pre>
+  </div>
+
+  <h3 style="margin-bottom:8px;">Check GUI server</h3>
+  <div class="code">
+    <div class="code-bar"><span class="code-label">PI</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+    <pre>sudo systemctl status drone-gui     <span class="cm"># check</span>
+sudo systemctl restart drone-gui    <span class="cm"># restart</span></pre>
+  </div>
+
+  <h3 style="margin-bottom:8px;">If ros2 commands not found</h3>
+  <div class="code">
+    <div class="code-bar"><span class="code-label">PI</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+    <pre>source /opt/ros/humble/setup.bash
+source ~/ros2_ws/install/setup.bash
+<span class="cm"># Then try your command again</span>
+<span class="cm"># Long-term fix: add both lines to ~/.bashrc (Step 7)</span></pre>
+  </div>
+
+  <h3 style="margin-bottom:8px;">If "package not found" error</h3>
+  <div class="code">
+    <div class="code-bar"><span class="code-label">PI</span><button class="copy-btn" onclick="cp(this)">COPY</button></div>
+    <pre>cd ~/ros2_ws && colcon build --packages-select drone_avoidance
+source install/setup.bash
+<span class="cm"># Then try again</span></pre>
+  </div>
+
+  <table style="margin-top:20px;">
+    <tr><th>I want to...</th><th>Command / Action</th><th>Where</th></tr>
+    <tr><td>Edit any code file</td><td>Edit in VS Code at ~/drone_project/</td><td>Laptop</td></tr>
+    <tr><td>Push changes to Pi</td><td>./deploy.sh</td><td>Laptop terminal</td></tr>
+    <tr><td>Open control GUI</td><td>Browser → http://10.42.0.1:8080/drone_gui.html</td><td>Any device</td></tr>
+    <tr><td>Start MAVROS</td><td>ros2 launch drone_avoidance mavros_cube.launch.py</td><td>Pi terminal 1</td></tr>
+    <tr><td>Start bench test</td><td>ros2 launch drone_avoidance bench_test.launch.py</td><td>Pi terminal 2</td></tr>
+    <tr><td>Inject obstacle</td><td>GUI sliders OR ros2 param set ...</td><td>Pi terminal 3</td></tr>
+    <tr><td>Emergency stop</td><td>ros2 service call /mavros/cmd/arming ... false</td><td>Pi any terminal</td></tr>
+    <tr><td>See all topics</td><td>ros2 topic list</td><td>Pi or Laptop</td></tr>
+    <tr><td>Rebuild</td><td>cd ~/ros2_ws && colcon build --packages-select drone_avoidance</td><td>Pi terminal</td></tr>
+  </table>
+</div>
+
+</main>
+</div>
+
+<div class="toast" id="toast">✓ Copied to clipboard</div>
+
+<script>
+// Clock
+(function tick(){
+  setTimeout(tick,1000);
+})();
+
+// Nav scroll
+function scrollTo(id){
+  const el=document.getElementById(id);
+  if(el) el.scrollIntoView({behavior:'smooth'});
+  document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
+  // find matching link
+  document.querySelectorAll('.nav-link').forEach(l=>{
+    if(l.getAttribute('onclick')&&l.getAttribute('onclick').includes("'"+id+"'"))
+      l.classList.add('active');
+  });
+}
+
+// Highlight nav on scroll
+const main=document.querySelector('main');
+const sections=document.querySelectorAll('.section');
+main.addEventListener('scroll',()=>{
+  let current='';
+  sections.forEach(s=>{
+    if(s.offsetTop - main.scrollTop < 200) current=s.id;
+  });
+  document.querySelectorAll('.nav-link').forEach(l=>{
+    l.classList.remove('active');
+    if(l.getAttribute('onclick')&&l.getAttribute('onclick').includes("'"+current+"'"))
+      l.classList.add('active');
+  });
+});
+
+// Copy
+function cp(btn){
+  const pre=btn.closest('.code').querySelector('pre');
+  const text=pre.innerText
+    .replace(/# .*/g,'')
+    .split('\n')
+    .map(l=>l.trimEnd())
+    .filter(l=>l.trim())
+    .join('\n')
+    .trim();
+  navigator.clipboard.writeText(text).then(()=>{
+    const t=document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'),1800);
+    btn.textContent='✓';
+    setTimeout(()=>btn.textContent='COPY',1500);
+  });
+}
+</script>
+</body>
+</html>
